@@ -21,6 +21,6 @@ data class Selection(val text: String, val context: String = "")
 data class Lookup(val original: String, val translation: String, val definition: String = "",
     val example: String = "", val synonyms: String = "", val level: String = "",
     val source: String = "Diccionario local", val cached: Boolean = false)
-data class Preferences(val theme: String = "Sistema", val fontSize: Int = 20,
+data class Preferences(val theme: String = "Oscuro", val fontSize: Int = 20,
     val lineHeight: Float = 1.8f, val serif: Boolean = true, val endpoint: String = "https://api.openai.com/v1",
     val model: String = "gpt-4.1-mini", val key: String = "")

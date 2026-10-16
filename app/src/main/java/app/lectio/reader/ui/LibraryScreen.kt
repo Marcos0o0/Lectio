@@ -32,7 +32,7 @@ import app.lectio.reader.data.Book
             IconButton(onClick={search=!search}) { Icon(if(search) Icons.Outlined.Close else Icons.Outlined.Search,if(search) "Cerrar búsqueda" else "Buscar libros") }
         },colors=TopAppBarDefaults.topAppBarColors(containerColor=MaterialTheme.colorScheme.background)) },
         floatingActionButton={ ExtendedFloatingActionButton(onClick={if(!state.importing) importBook()},icon={if(state.importing) CircularProgressIndicator(Modifier.size(22.dp),strokeWidth=2.dp) else Icon(Icons.Outlined.Add,null)},text={Text(if(state.importing) "Importando…" else "Importar EPUB")},containerColor=MaterialTheme.colorScheme.primary,contentColor=MaterialTheme.colorScheme.onPrimary) },
-        contentWindowInsets=WindowInsets(0,0,0,0)
+        contentWindowInsets=WindowInsets.safeDrawing.only(WindowInsetsSides.Bottom)
     ) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(start=24.dp,end=24.dp,bottom=112.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
             if(search) item { OutlinedTextField(value=query,onValueChange={query=it},Modifier.fillMaxWidth(),placeholder={Text("Título o autor")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true) }

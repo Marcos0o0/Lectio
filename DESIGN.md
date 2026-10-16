@@ -1,39 +1,86 @@
 ---
 name: Lectio
-description: A warm, local reading space for understanding English in Spanish.
+description: A modern dark reading space for understanding English in Spanish.
 colors:
-  primary-light: "#24483F"
+  primary-light: "#365F99"
   on-primary-light: "#FFFFFF"
-  primary-container-light: "#E0E9DE"
-  on-primary-container-light: "#213F34"
-  secondary-light: "#77513B"
-  secondary-container-light: "#F0E1D0"
-  on-secondary-container-light: "#553725"
-  paper-light: "#F8F5EF"
-  ink-light: "#242B26"
-  surface-variant-light: "#EDE9E0"
-  on-surface-variant-light: "#62665D"
-  outline-light: "#797C71"
-  outline-variant-light: "#DCDDD2"
-  surface-container-light: "#EFECE4"
-  surface-container-low-light: "#F3F0E9"
-  surface-container-high-light: "#E9E6DD"
-  primary-dark: "#B2D0BB"
-  on-primary-dark: "#17392F"
-  primary-container-dark: "#304E42"
-  on-primary-container-dark: "#D5E9DA"
-  secondary-dark: "#E4B99A"
-  secondary-container-dark: "#543E30"
-  on-secondary-container-dark: "#F4DCC9"
-  paper-dark: "#191D19"
-  ink-dark: "#E5E6DC"
-  surface-variant-dark: "#2B302A"
-  on-surface-variant-dark: "#B5BBAD"
-  outline-dark: "#8F9688"
-  outline-variant-dark: "#41483E"
-  surface-container-dark: "#242A23"
-  surface-container-low-dark: "#20251F"
-  surface-container-high-dark: "#30362E"
+  primary-container-light: "#D8E6FF"
+  on-primary-container-light: "#102F57"
+  secondary-light: "#526176"
+  on-secondary-light: "#FFFFFF"
+  secondary-container-light: "#E0E7F2"
+  on-secondary-container-light: "#202E40"
+  tertiary-light: "#635C7E"
+  on-tertiary-light: "#FFFFFF"
+  tertiary-container-light: "#E9E1FF"
+  on-tertiary-container-light: "#302B4A"
+  background-light: "#F6F8FC"
+  on-background-light: "#191D25"
+  surface-light: "#F6F8FC"
+  on-surface-light: "#191D25"
+  surface-variant-light: "#E2E7EF"
+  on-surface-variant-light: "#414B5A"
+  outline-light: "#707C8D"
+  outline-variant-light: "#C2CAD6"
+  surface-container-lowest-light: "#FFFFFF"
+  surface-container-low-light: "#F0F3F9"
+  surface-container-light: "#EAEEF5"
+  surface-container-high-light: "#E3E8F0"
+  surface-container-highest-light: "#DCE2EC"
+  surface-dim-light: "#D6DDE8"
+  surface-bright-light: "#F6F8FC"
+  inverse-surface-light: "#2B3038"
+  inverse-on-surface-light: "#EDF1F8"
+  inverse-primary-light: "#A8C7FA"
+  surface-tint-light: "#365F99"
+  error-light: "#BA1A1A"
+  on-error-light: "#FFFFFF"
+  error-container-light: "#FFDAD6"
+  on-error-container-light: "#410002"
+  scrim-light: "#000000"
+  primary-dark: "#A8C7FA"
+  on-primary-dark: "#0A305F"
+  primary-container-dark: "#243E62"
+  on-primary-container-dark: "#D6E5FF"
+  secondary-dark: "#BBC5D6"
+  on-secondary-dark: "#263141"
+  secondary-container-dark: "#303A49"
+  on-secondary-container-dark: "#E0E7F2"
+  tertiary-dark: "#C5BFE4"
+  on-tertiary-dark: "#302B4A"
+  tertiary-container-dark: "#47415F"
+  on-tertiary-container-dark: "#E9E1FF"
+  background-dark: "#101216"
+  on-background-dark: "#E3E7EF"
+  surface-dark: "#101216"
+  on-surface-dark: "#E3E7EF"
+  surface-variant-dark: "#424B59"
+  on-surface-variant-dark: "#B5BECC"
+  outline-dark: "#8691A2"
+  outline-variant-dark: "#424B59"
+  surface-container-lowest-dark: "#0C0E12"
+  surface-container-low-dark: "#171A20"
+  surface-container-dark: "#1D2129"
+  surface-container-high-dark: "#262B35"
+  surface-container-highest-dark: "#303641"
+  surface-dim-dark: "#101216"
+  surface-bright-dark: "#363C47"
+  inverse-surface-dark: "#E3E7EF"
+  inverse-on-surface-dark: "#2B3038"
+  inverse-primary-dark: "#365F99"
+  surface-tint-dark: "#A8C7FA"
+  error-dark: "#FFB4AB"
+  on-error-dark: "#690005"
+  error-container-dark: "#93000A"
+  on-error-container-dark: "#FFDAD6"
+  scrim-dark: "#000000"
+  cover-blue: "#293F5D"
+  cover-violet: "#3E425C"
+  cover-teal: "#2E4A53"
+  cover-slate: "#414956"
+  cover-title: "#E6ECF5"
+  cover-metadata: "#CCD7E6"
+  cover-spine: "rgba(0, 0, 0, 0.12)"
 typography:
   display-small:
     fontFamily: "Literata, serif"
@@ -134,12 +181,12 @@ components:
 
 **Creative North Star: "A quiet reading room"**
 
-Lectio pairs warm paper surfaces and forest green actions with literary headings and clear functional controls. Reading and contextual understanding share one space: a selected word opens a meaning sheet, while optional AI stays behind explicit actions. Local use requires no account.
+Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: a selected word opens a meaning sheet, while optional AI stays behind explicit actions. Local use requires no account.
 
 This is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.
 
 **Key Characteristics:**
-- Warm light paper and a separate dark forest scheme.
+- Modern graphite dark surfaces, slate containers, soft blue actions, and a cool light scheme.
 - Serif literary headings with sans serif functional text.
 - Material 3 controls, tonal containers, and native modal sheets.
 - Adjustable reading type and contextual meanings with visible provenance.
@@ -147,23 +194,27 @@ This is a code-led record of the native Android Compose implementation, not a re
 
 ## Colors
 
-The palette combines forest foliage, warm brown accents, paper neutrals, and restrained tonal separation. The paired light/dark entries in frontmatter reproduce explicit assignments in `ui/Theme.kt`.
+The palette uses graphite and slate neutrals with soft blue primary actions. Both schemes explicitly define every Material 3 color role in ui/Theme.kt; the frontmatter records those assignments without deriving a replacement palette. There is no dynamic wallpaper color implementation.
 
 ### Primary
 
-Forest green (`primary-light`) and pale sage (`primary-dark`) carry filled actions, reading progress, selected chapter indicators, activity values, and source labels. Their `on-primary` partners carry foregrounds on filled actions. The `primary-container` pairs provide the continuing-reading card and the activity chart surface.
+Deep blue (primary-light) and soft blue (primary-dark) carry filled actions, reading progress, selected chapter indicators, activity values, and source labels. Their on-primary partners carry foregrounds on filled actions. The primary-container pairs provide the continuing-reading card and activity chart surface. The launcher icon uses the dark background and primary colors; the native startup window uses the same graphite background.
 
 ### Secondary
 
-Warm brown in light mode and soft peach in dark mode are the explicit secondary roles. The `secondary-container` roles distinguish the vocabulary review summary. Keep foregrounds paired with their matching Material roles; several existing summary surfaces currently inherit text rather than explicitly applying `onSecondaryContainer` or `onPrimaryContainer`.
+Slate blue-gray supplies the secondary roles; secondary-container distinguishes the vocabulary review summary and saved EPUB highlights. Use the foreground corresponding to the selected container. The continuing-reading card explicitly pairs its primary-container foregrounds; some summary surfaces currently inherit text rather than explicitly applying the matching container foreground.
+
+### Tertiary
+
+Muted violet completes the explicit Material scheme for components that request tertiary roles. It does not establish a separate promotional accent or a new screen treatment.
 
 ### Neutral
 
-`paper` supplies both `background` and `surface`; `ink` supplies both `onBackground` and `onSurface`. `on-surface-variant` carries authors, explanations, metadata, and helper copy. `outline-variant` carries dividers. The three `surface-container` roles provide tonal layers; selected passages use `surfaceContainer`.
+Background and surface share graphite in dark mode and cool near-white in light mode; on-background and on-surface supply the matching text. On-surface-variant carries authors, explanations, metadata, and helper copy. Outline-variant carries dividers. The five surface-container levels provide tonal layers for native components; selected passages and EPUB blockquotes use surface-container. Inverse, tint, error, scrim, bright, and dim roles are explicitly recorded, rather than inherited from a warm default scheme.
 
-**The Paired Roles Rule.** Resolve UI colors through `MaterialTheme.colorScheme` and use the foreground role corresponding to its background role.
+**The Paired Roles Rule.** Resolve UI colors through MaterialTheme.colorScheme and use the foreground role corresponding to its background role.
 
-Only the explicit scheme overrides are recorded. Tertiary, error, inverse, and other unassigned roles retain Material 3 defaults; they are not a custom Lectio palette. There is no dynamic wallpaper color implementation. Fallback cover palettes and WebView selection/highlight colors are local implementation details, not general UI accents.
+EPUB selection uses primary-container / on-primary-container; saved highlights use secondary-container / on-secondary-container; dividers use outline-variant. The reader error fallback also follows the current background and foreground. The local cover-* tokens describe deterministic fallback illustrations only; they are not general UI accents.
 
 ## Typography
 
@@ -200,7 +251,7 @@ The EPUB page is centered with maximum width (740 CSS px) and padding (24px 28px
 
 **The Navigation Width Rule.** Use the existing compact bar / expanded rail boundary; do not copy the compact bar onto the expanded layout.
 
-Insets are managed across native scaffolds and activity setup, with a reader navigation-bar inset. Several scaffolds explicitly zero their content insets; full edge-to-edge and keyboard behavior require device verification rather than a claim of complete coverage.
+Insets are managed across native scaffolds and activity setup, with a reader navigation-bar inset. The library Scaffold consumes the bottom safe-drawing inset, keeping the import FAB above the taskbar on expanded windows. Android 15 emulator captures cover phone, expanded window, landscape, light/dark themes, and 130% text; they do not establish physical Redmi hardware or full keyboard/gesture coverage. See VALIDATION.md for evidence and limits.
 
 ## Elevation & Depth
 
@@ -234,7 +285,7 @@ Search, API setup, personal translation, and notes use `OutlinedTextField`. Sear
 
 ### Book Covers
 
-Real EPUB cover images crop to the cover bounds. Missing covers get a deterministic muted color, serif title, author or demonstration text, and a dark translucent spine. Color choice comes from four local constants and is not a primary-action palette. Tiny uppercase edition labels in this fallback are an existing implementation defect, not a reusable eyebrow/kicker pattern.
+Real EPUB cover images crop to the cover bounds. Missing covers get a deterministic muted color, serif title, author or demonstration text, and a dark translucent spine. Color choice comes from four cool blue/slate/violet local constants (cover-blue, cover-violet, cover-teal, cover-slate). Titles use cover-title, metadata uses cover-metadata, and the 5dp spine uses cover-spine. These illustration tokens are not a primary-action palette. Tiny uppercase edition labels in this fallback are an existing implementation defect, not a reusable eyebrow/kicker pattern.
 
 ### Meaning Sheet
 
@@ -242,7 +293,7 @@ Text selection opens `LookupSheet`, a fully expanded `ModalBottomSheet` with a s
 
 ### Reading Surface
 
-An isolated WebView renders reflowable content using theme background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. Native selection opens the meaning sheet; saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Fixed selection/highlight colors and an unthemed error HTML fallback are limitations to address, not system tokens for future screens.
+An isolated WebView renders reflowable content using theme background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. Native selection opens the meaning sheet; saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Selection and saved highlights use paired theme container roles, blockquotes use the surface container, and dividers use the theme outline variant. The error HTML fallback uses the same background and foreground as the reading page.
 
 ## Do's and Don'ts
 
@@ -257,8 +308,8 @@ An isolated WebView renders reflowable content using theme background/foreground
 
 ### Don't:
 
-- **Don't** treat cover colors or fixed WebView highlight colors as general app accents.
+- **Don't** treat fallback cover colors as general app accents or reintroduce fixed warm colors into themed reader content.
 - **Don't** promote tiny uppercase cover labels into a reusable heading pattern.
 - **Don't** describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.
 - **Don't** introduce account UI as a prerequisite to local reading or vocabulary.
-- **Don't** claim device-verified font scaling, contrast, insets, or responsive coverage from this source scan alone.
+- **Don't** present Android 15 emulator captures or DOM selection tests as physical-phone gesture, TTS, or performance verification.

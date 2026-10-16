@@ -17,19 +17,27 @@ import app.lectio.reader.R
 
 val Literary = FontFamily(Font(R.font.literata))
 
-private val Light = lightColorScheme(
-    primary=Color(0xFF24483F),onPrimary=Color(0xFFFFFFFF),primaryContainer=Color(0xFFE0E9DE),onPrimaryContainer=Color(0xFF213F34),
-    secondary=Color(0xFF77513B),secondaryContainer=Color(0xFFF0E1D0),onSecondaryContainer=Color(0xFF553725),
-    background=Color(0xFFF8F5EF),onBackground=Color(0xFF242B26),surface=Color(0xFFF8F5EF),onSurface=Color(0xFF242B26),
-    surfaceVariant=Color(0xFFEDE9E0),onSurfaceVariant=Color(0xFF62665D),outline=Color(0xFF797C71),outlineVariant=Color(0xFFDCDDD2),
-    surfaceContainer=Color(0xFFEFECE4),surfaceContainerLow=Color(0xFFF3F0E9),surfaceContainerHigh=Color(0xFFE9E6DD)
+internal val LectioLight = lightColorScheme(
+    primary=Color(0xFF365F99),onPrimary=Color.White,primaryContainer=Color(0xFFD8E6FF),onPrimaryContainer=Color(0xFF102F57),
+    secondary=Color(0xFF526176),onSecondary=Color.White,secondaryContainer=Color(0xFFE0E7F2),onSecondaryContainer=Color(0xFF202E40),
+    tertiary=Color(0xFF635C7E),onTertiary=Color.White,tertiaryContainer=Color(0xFFE9E1FF),onTertiaryContainer=Color(0xFF302B4A),
+    background=Color(0xFFF6F8FC),onBackground=Color(0xFF191D25),surface=Color(0xFFF6F8FC),onSurface=Color(0xFF191D25),
+    surfaceVariant=Color(0xFFE2E7EF),onSurfaceVariant=Color(0xFF414B5A),outline=Color(0xFF707C8D),outlineVariant=Color(0xFFC2CAD6),
+    surfaceContainerLowest=Color.White,surfaceContainerLow=Color(0xFFF0F3F9),surfaceContainer=Color(0xFFEAEEF5),
+    surfaceContainerHigh=Color(0xFFE3E8F0),surfaceContainerHighest=Color(0xFFDCE2EC),surfaceDim=Color(0xFFD6DDE8),surfaceBright=Color(0xFFF6F8FC),
+    inverseSurface=Color(0xFF2B3038),inverseOnSurface=Color(0xFFEDF1F8),inversePrimary=Color(0xFFA8C7FA),surfaceTint=Color(0xFF365F99),
+    error=Color(0xFFBA1A1A),onError=Color.White,errorContainer=Color(0xFFFFDAD6),onErrorContainer=Color(0xFF410002),scrim=Color.Black
 )
-private val Dark = darkColorScheme(
-    primary=Color(0xFFB2D0BB),onPrimary=Color(0xFF17392F),primaryContainer=Color(0xFF304E42),onPrimaryContainer=Color(0xFFD5E9DA),
-    secondary=Color(0xFFE4B99A),secondaryContainer=Color(0xFF543E30),onSecondaryContainer=Color(0xFFF4DCC9),
-    background=Color(0xFF191D19),onBackground=Color(0xFFE5E6DC),surface=Color(0xFF191D19),onSurface=Color(0xFFE5E6DC),
-    surfaceVariant=Color(0xFF2B302A),onSurfaceVariant=Color(0xFFB5BBAD),outline=Color(0xFF8F9688),outlineVariant=Color(0xFF41483E),
-    surfaceContainer=Color(0xFF242A23),surfaceContainerLow=Color(0xFF20251F),surfaceContainerHigh=Color(0xFF30362E)
+internal val LectioDark = darkColorScheme(
+    primary=Color(0xFFA8C7FA),onPrimary=Color(0xFF0A305F),primaryContainer=Color(0xFF243E62),onPrimaryContainer=Color(0xFFD6E5FF),
+    secondary=Color(0xFFBBC5D6),onSecondary=Color(0xFF263141),secondaryContainer=Color(0xFF303A49),onSecondaryContainer=Color(0xFFE0E7F2),
+    tertiary=Color(0xFFC5BFE4),onTertiary=Color(0xFF302B4A),tertiaryContainer=Color(0xFF47415F),onTertiaryContainer=Color(0xFFE9E1FF),
+    background=Color(0xFF101216),onBackground=Color(0xFFE3E7EF),surface=Color(0xFF101216),onSurface=Color(0xFFE3E7EF),
+    surfaceVariant=Color(0xFF424B59),onSurfaceVariant=Color(0xFFB5BECC),outline=Color(0xFF8691A2),outlineVariant=Color(0xFF424B59),
+    surfaceContainerLowest=Color(0xFF0C0E12),surfaceContainerLow=Color(0xFF171A20),surfaceContainer=Color(0xFF1D2129),
+    surfaceContainerHigh=Color(0xFF262B35),surfaceContainerHighest=Color(0xFF303641),surfaceDim=Color(0xFF101216),surfaceBright=Color(0xFF363C47),
+    inverseSurface=Color(0xFFE3E7EF),inverseOnSurface=Color(0xFF2B3038),inversePrimary=Color(0xFF365F99),surfaceTint=Color(0xFFA8C7FA),
+    error=Color(0xFFFFB4AB),onError=Color(0xFF690005),errorContainer=Color(0xFF93000A),onErrorContainer=Color(0xFFFFDAD6),scrim=Color.Black
 )
 val LectioTypography = Typography(
     displaySmall=TextStyle(fontFamily=Literary,fontSize=36.sp,lineHeight=44.sp),
@@ -55,5 +63,5 @@ val LectioTypography = Typography(
             }
         }
     }
-    MaterialTheme(colorScheme=if(dark) Dark else Light,typography=LectioTypography,content=content)
+    MaterialTheme(colorScheme=if(dark) LectioDark else LectioLight,typography=LectioTypography,content=content)
 }

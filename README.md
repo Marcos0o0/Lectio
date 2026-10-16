@@ -34,6 +34,8 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 - Consultar minutos de lectura, días con actividad y palabras aprendidas.
 - Ajustar tipografía, tamaño, interlineado y tema claro, oscuro o del sistema. Navegación con barra en teléfono y rail en pantallas amplias.
 
+La apariencia inicial es oscura, con superficies grafito y acentos azules. Si ya elegiste Claro o Sistema en Ajustes, se respeta esa elección. El lector, los menús y la selección de texto comparten los colores del tema.
+
 Al abrir se incluye **A Little More Slowly**, una lectura de muestra original de Lectio, con tres capítulos en inglés. Las portadas tipográficas de reserva representan el título; no son portadas editoriales originales.
 
 ## IA opcional
@@ -77,6 +79,7 @@ app/src/main/java/app/lectio/reader/
   ui/                      Pantallas, tema y lector aislado
 app/src/main/assets/dictionary.json
 app/src/test/               Pruebas del parser, datos y flujos de interfaz
+app/src/androidTest/        Regresión nativa del lector con Chromium real
 ```
 
 Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no se incorporan Room, DataStore, WorkManager ni Readium todavía. Las importaciones se ejecutan fuera del hilo de interfaz. Cada EPUB está limitado a 100 MB y cada recurso descomprimido a 16 MB, sin extraer rutas del archivo al sistema de archivos.
@@ -85,7 +88,7 @@ Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no
 
 Resultados, capturas y pasos pendientes en dispositivo: [VALIDATION.md](VALIDATION.md).
 
-Las pruebas del parser cubren rutas relativas, escapes de directorio, contenido activo, límites de recursos, metadatos, orden de lectura y claves de caché contextuales. Las pruebas Robolectric comprueban persistencia y navegación Compose. Las capturas de Robolectric, cuando se generan, son evidencia del renderizador Android de pruebas en JVM; no equivalen a pruebas en un teléfono o emulador.
+Las 14 pruebas JVM cubren el parser, recursos WebView, persistencia y navegación Compose. Dos pruebas instrumentadas ejecutadas en Android 15 comprueban capítulos reales en Chromium, selección mediante DOM y consulta nativa, reapertura y temas. Las capturas actuales del emulador y los límites de esta cobertura están en VALIDATION.md.
 
 Quedan por validar en hardware: selección mediante gestos dentro del WebView, motor TTS, selector de archivos de cada fabricante, restauración tras terminar el proceso y rendimiento con libros grandes. El código está disponible en GitHub; la app aún no se ha publicado en una tienda.
 
