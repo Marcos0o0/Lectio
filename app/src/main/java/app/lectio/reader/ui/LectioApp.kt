@@ -11,11 +11,15 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import app.lectio.reader.ReaderState
 import app.lectio.reader.ReaderViewModel
 
 @Composable fun LectioApp(vm: ReaderViewModel, state: ReaderState, pronounce: (String) -> Unit) {
     var destination by rememberSaveable { mutableStateOf(0) }
+    var readerSettings by rememberSaveable {mutableStateOf(false)}
+    LaunchedEffect(state.current?.id) {if(state.current==null) readerSettings=false}
     val snackbars=remember { SnackbarHostState() }
     val importer=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBook) }
     val importBook: () -> Unit = { importer.launch(arrayOf("application/epub+zip","application/octet-stream")) }
@@ -50,5 +54,8 @@ import app.lectio.reader.ReaderViewModel
             }
         }
     }
-    if(state.selection!=null && state.current!=null) LookupSheet(vm,state,pronounce) { vm.dismissSelection(); vm.closeBook();destination=3 }
+    if(state.selection!=null && state.current!=null) LookupSheet(vm,state,pronounce) {vm.dismissSelection();readerSettings=true}
+    if(readerSettings&&state.current!=null) Dialog(onDismissRequest={readerSettings=false},properties=DialogProperties(usePlatformDefaultWidth=false,decorFitsSystemWindows=false)) {
+        Surface(Modifier.fillMaxSize()) {SettingsScreen(state.preferences,state.translationReady,state.translationDownloading,vm::preferences,vm::downloadTranslation,"Gemini") {readerSettings=false}}
+    }
 }

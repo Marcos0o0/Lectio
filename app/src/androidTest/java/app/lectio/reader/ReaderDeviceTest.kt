@@ -13,6 +13,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.Assert.*
 import org.junit.Rule
+import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
@@ -94,6 +95,13 @@ class ReaderDeviceTest {
     private fun library() {
         await("Biblioteca visible") {textNode("¿Qué te gustaría leer?")!=null}
     }
+    @Before fun resetReadingPreferences() {
+        library()
+        activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].preferences {
+            it.copy(theme="Oscuro",fontSize=20,lineHeight=1.8f,serif=true,readingTheme="Aplicación",margin=28,paragraphSpacing=1f,justified=false,keepScreenOn=false,tapToTranslate=true,showReadingHint=true,dictionaryEnabled=true)
+        }}
+        automation.waitForIdle(150,5000)
+    }
     private fun openBook() {
         tap(text="A Little More Slowly")
         await("Lector visible") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Volver a la biblioteca"}!=null}
@@ -105,7 +113,9 @@ class ReaderDeviceTest {
         SystemClock.sleep(250)
         val directory=File(instrumentation.targetContext.getExternalFilesDir(null),"screenshots").apply {mkdirs()}
         val bitmap=requireNotNull(automation.takeScreenshot())
-        File(directory,"$name.png").outputStream().use {bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
+        val prefix=InstrumentationRegistry.getArguments().getString("capturePrefix")
+        val filename=if(prefix!=null) name.replaceFirst("phone-","$prefix-") else name
+        File(directory,"$filename.png").outputStream().use {bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
         bitmap.recycle()
     }
 
@@ -154,12 +164,20 @@ class ReaderDeviceTest {
             tap(text="Descargar usando datos móviles")
         }
         await("Traducción del modelo local",180_000) {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
-        await("Oración traducida") {textNode("En esta oración")!=null}
+        await("Significado real del diccionario",60_000) {textNode("1. Adjetivo")!=null}
         capture("phone-lookup-dark-android15")
-        closeLookup()
+        tap(text="Contexto")
+        await("Oración traducida") {textNode("En esta oración")!=null}
+        capture("phone-context-dark-android15")
+        tap(text="Notas");await("Anotar fragmento") {textNode("Guardar subrayado")!=null};capture("phone-notes-dark-android15")
+        tap(text="Contexto");tap(text="Conectar Gemini")
+        await("Conexión sin abandonar el libro") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Volver al libro"}!=null}
+        capture("phone-gemini-from-reader-android15")
+        tap(description="Volver al libro");waitForChapter("For a few precious minutes")
         touchWord("minutes",false)
         await("Ficha tras tocar palabra") {textNode("minutes")!=null}
-        await("Traducción de otra palabra") {textNode("En esta oración")!=null}
+        await("Traducción de otra palabra") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        tap(text="Contexto");await("Contexto de otra palabra") {textNode("En esta oración")!=null}
         closeLookup()
         // Phrase handles remain native; this range checks the multiword payload and real model.
         assertEquals("true",javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf('For a few precious minutes'),r=document.createRange();r.setStart(n,i);r.setEnd(n,n.textContent.length);let s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event('selectionchange'));return true})()"""))
@@ -185,8 +203,33 @@ class ReaderDeviceTest {
         capture("phone-reader-light-android15")
         tap(description="Volver a la biblioteca")
         library();tap(text="Ajustes");chooseTheme("Oscuro")
-        scrollTo("Conectar Gemini");tap(text="Conectar Gemini")
+        tap(text="Gemini");tap(text="Conectar Gemini")
         scrollTo("Clave de Gemini")
         capture("phone-gemini-setup-android15")
+    }
+
+    @Test fun readingOptionsPersistAndReachChromium() {
+        library();tap(text="Ajustes");tap(text="Diccionario y traducción");capture("phone-dictionary-settings-android15");tap(description="Volver a Ajustes");tap(text="Lectura");capture("phone-reading-text-android15")
+        tap(text="Página");tap(text="Amplios");tap(text="Más");chooseTheme("Claro")
+        scrollTo("Texto justificado");tap(text="Texto justificado");capture("phone-reading-page-android15")
+        // Return to the tab row after inspecting the lower page controls.
+        repeat(5) {findNode(automation.rootInActiveWindow) {it.isScrollable}?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);SystemClock.sleep(100)}
+        tap(text="Controles");scrollTo("Consultar al tocar");tap(text="Consultar al tocar");scrollTo("Mantener pantalla encendida");tap(text="Mantener pantalla encendida");scrollTo("Mostrar ayuda de gestos");tap(text="Mostrar ayuda de gestos")
+        capture("phone-reading-controls-android15")
+        activity.scenario.recreate()
+        await("Preferencias conservadas") {app.lectio.reader.data.SettingsStore(instrumentation.targetContext).load().let {it.margin==44&&it.readingTheme=="Claro"&&it.justified&&!it.tapToTranslate&&it.keepScreenOn&&!it.showReadingHint}}
+        tap(text="Biblioteca");library();openBook()
+        await("Márgenes en Chromium") {javascript("getComputedStyle(document.body).paddingLeft")=="\"44px\""}
+        assertEquals("\"justify\"",javascript("getComputedStyle(document.querySelector('p')).textAlign"))
+        assertEquals("\"rgb(246, 248, 252)\"",javascript("getComputedStyle(document.documentElement).backgroundColor"))
+        val paragraphMargin=app.lectio.reader.data.SettingsStore(instrumentation.targetContext).load().fontSize*1.5f
+        assertEquals(paragraphMargin,org.json.JSONTokener(javascript("parseFloat(getComputedStyle(document.querySelector('p')).marginBottom)")).nextValue().toString().toFloat(),.01f)
+        assertNull(textNode("Toca una palabra para ver su significado. Mantén pulsado para seleccionar una frase."))
+        var kept=false;activity.scenario.onActivity {kept=requireNotNull(findWebView(it.window.decorView)).keepScreenOn};assertTrue(kept)
+        capture("phone-reader-custom-android15")
+        tap(description="Apariencia de lectura");capture("phone-reader-appearance-android15");scrollTo("Restablecer lectura");tap(text="Restablecer lectura")
+        tap(description="Cerrar apariencia")
+        await("Valores iniciales restaurados") {javascript("getComputedStyle(document.body).paddingLeft")=="\"28px\""}
+        tap(description="Volver a la biblioteca");library()
     }
 }

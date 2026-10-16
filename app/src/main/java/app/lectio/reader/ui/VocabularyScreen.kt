@@ -13,9 +13,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import app.lectio.reader.data.Word
+import app.lectio.reader.data.DictionaryClient
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 @OptIn(ExperimentalMaterial3Api::class,ExperimentalLayoutApi::class)
 @Composable fun VocabularyScreen(words: List<Word>, pronounce: (String) -> Unit, toggle: (Word) -> Unit, delete: (Word) -> Unit, review: (Word,Boolean) -> Unit) {
+    val uri=LocalUriHandler.current
     var query by rememberSaveable {mutableStateOf("")}
     var filter by rememberSaveable {mutableStateOf(0)}
     var selected by remember {mutableStateOf<Word?>(null)}
@@ -42,10 +47,15 @@ import app.lectio.reader.data.Word
     }
     selected?.let { original -> val word=words.find {it.text==original.text} ?: original
         ModalBottomSheet(onDismissRequest={selected=null}) {
-            Column(Modifier.fillMaxWidth().padding(horizontal=24.dp).padding(bottom=32.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+            Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=24.dp).padding(bottom=32.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {Text(word.text,Modifier.weight(1f),style=MaterialTheme.typography.headlineLarge);IconButton(onClick={pronounce(word.text)}) {Icon(Icons.Outlined.VolumeUp,"Escuchar pronunciación")}}
                 Text(word.translation,style=MaterialTheme.typography.titleLarge)
                 if(word.definition.isNotBlank()) Text(word.definition)
+                if(DictionaryClient.safeLink(word.dictionarySource)) {
+                    Text("Autores de Wiktionary. La definición puede estar traducida automáticamente.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick={uri.openUri(word.dictionarySource)}) {Text("Ver definición original")}
+                    if(DictionaryClient.safeLink(word.dictionaryLicense)) TextButton(onClick={uri.openUri(word.dictionaryLicense)}) {Text("CC BY-SA 4.0")}
+                }
                 if(word.context.isNotBlank()) Text("“${word.context}”",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 if(word.example.isNotBlank()) Text(word.example,style=MaterialTheme.typography.bodyMedium)
                 Text(listOf(word.source,word.level.takeIf {it.isNotBlank()}?.let {"CEFR orientativo: $it"}).filterNotNull().joinToString(" · "),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

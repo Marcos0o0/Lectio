@@ -64,7 +64,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
     val page=remember {PageState()}
     val bg="#%06X".format(0xFFFFFF and background.toArgb())
     val fg="#%06X".format(0xFFFFFF and foreground.toArgb())
-    val scheme=MaterialTheme.colorScheme
+    val scheme=readingColors(preferences)
     fun Color.css()="#%06X".format(0xFFFFFF and toArgb())
     val quote=scheme.surfaceContainer.css()
     val selection=scheme.primaryContainer.css()
@@ -73,7 +73,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
     val onHighlight=scheme.onSecondaryContainer.css()
     val divider=scheme.outlineVariant.css()
     val dark=background.luminance()<.5f
-    val html by produceState<String?>(null,book.id,book.chapter,preferences.fontSize,preferences.lineHeight,preferences.serif,scheme,highlights) {
+    val html by produceState<String?>(null,book.id,book.chapter,preferences.fontSize,preferences.lineHeight,preferences.serif,preferences.margin,preferences.paragraphSpacing,preferences.justified,preferences.tapToTranslate,scheme,highlights) {
         value=withContext(Dispatchers.IO) {
             runCatching {
                 val body=Epub.safeBody(Epub.resource(File(book.file),chapter.path))
@@ -81,7 +81,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
                 """<!doctype html><html lang="en"><head><meta name="viewport" content="width=device-width, initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src https://lectio.local data:; style-src 'unsafe-inline'; script-src 'nonce-$nonce'; font-src https://lectio.local; connect-src 'none'; base-uri 'none'; form-action 'none'"><style>
                 @font-face{font-family:Literata;src:url('https://lectio.local/app-font/literata.ttf') format('truetype');font-weight:100 900;font-display:swap}
                 :root{color-scheme:${if(dark) "dark" else "light"}}
-                *{box-sizing:border-box}html{background:$bg;color:$fg;-webkit-text-size-adjust:100%}body{margin:0 auto;padding:24px 28px 70px;max-width:740px;font-family:${if(preferences.serif) "Literata, serif" else "sans-serif"};font-size:${preferences.fontSize}px;line-height:${preferences.lineHeight};overflow-wrap:break-word}h1{font-size:1.8em;line-height:1.2;font-weight:400;margin:.45em 0 1.1em}h2{display:flow-root;font-size:1.25em;line-height:1.35;margin:0 0 .7em;padding-top:1em}p{margin:0 0 1em}img,svg{max-width:100%;height:auto}a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}blockquote{margin:1em 0;padding:1em;background:$quote}::selection{background:$selection;color:$onSelection}mark{background:$highlight;color:$onHighlight;padding:2px 0}table{max-width:100%;display:block;overflow-x:auto}pre{white-space:pre-wrap}hr{border:0;border-top:1px solid $divider;margin:2em 0}
+                *{box-sizing:border-box}html{background:$bg;color:$fg;-webkit-text-size-adjust:100%}body{margin:0 auto;padding:24px ${preferences.margin}px 70px;max-width:740px;font-family:${if(preferences.serif) "Literata, serif" else "sans-serif"};font-size:${preferences.fontSize}px;line-height:${preferences.lineHeight};overflow-wrap:break-word}h1{font-size:1.8em;line-height:1.2;font-weight:400;margin:.45em 0 1.1em}h2{display:flow-root;font-size:1.25em;line-height:1.35;margin:0 0 .7em;padding-top:1em}p{margin:0 0 ${preferences.paragraphSpacing}em;text-align:${if(preferences.justified) "justify" else "start"};hyphens:auto}img,svg{max-width:100%;height:auto}a{color:inherit;text-decoration-thickness:1px;text-underline-offset:3px}blockquote{margin:1em 0;padding:1em;background:$quote}::selection{background:$selection;color:$onSelection}mark{background:$highlight;color:$onHighlight;padding:2px 0}table{max-width:100%;display:block;overflow-x:auto}pre{white-space:pre-wrap}hr{border:0;border-top:1px solid $divider;margin:2em 0}
                 </style></head><body>$body<script nonce="$nonce">
                 window.lastLookup='';let timer,touching=false,touchStart=null;const marks=${JSONArray(highlights)};
                 window.lectioPayload=function(){let s=getSelection(),text=s.toString().trim();if(!text)return null;let n=s.anchorNode,p=n?(n.nodeType===1?n:n.parentElement):null,b=p?p.closest('p,li,blockquote,div,section'):null;let context=b?b.innerText:(p?p.innerText:text);let sentences=context.match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[context];context=sentences.find(x=>x.includes(text))||context;return {text:text,context:context.trim().slice(0,1200)}};
@@ -89,7 +89,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
                 document.addEventListener('touchstart',e=>{touching=true;clearTimeout(timer);let t=e.touches[0];touchStart={x:t.clientX,y:t.clientY,time:Date.now(),moved:false}},{passive:true});
                 document.addEventListener('touchmove',e=>{if(touchStart){let t=e.touches[0];if(Math.hypot(t.clientX-touchStart.x,t.clientY-touchStart.y)>10)touchStart.moved=true}},{passive:true});
                 function selectWord(x,y){let r=document.caretRangeFromPoint(x,y);if(!r||r.startContainer.nodeType!==3)return;let n=r.startContainer,p=n.parentElement;if(!p||p.closest('a,button,script,style'))return;let i=r.startOffset,value=n.textContent;let segmenter=new Intl.Segmenter('en',{granularity:'word'});let word=Array.from(segmenter.segment(value)).find(w=>w.isWordLike&&i>=w.index&&i<w.index+w.segment.length);if(!word)return;r.setStart(n,word.index);r.setEnd(n,word.index+word.segment.length);let s=getSelection();s.removeAllRanges();s.addRange(r);lookup()}
-                document.addEventListener('touchend',()=>{touching=false;clearTimeout(timer);if(touchStart&&!touchStart.moved&&Date.now()-touchStart.time<350&&!getSelection().toString().trim())selectWord(touchStart.x,touchStart.y);touchStart=null;timer=setTimeout(lookup,750)},{passive:true});
+                document.addEventListener('touchend',()=>{touching=false;clearTimeout(timer);if(${preferences.tapToTranslate}&&touchStart&&!touchStart.moved&&Date.now()-touchStart.time<350&&!getSelection().toString().trim())selectWord(touchStart.x,touchStart.y);touchStart=null;timer=setTimeout(lookup,750)},{passive:true});
                 document.addEventListener('touchcancel',()=>{touching=false;touchStart=null;clearTimeout(timer);timer=setTimeout(lookup,900)},{passive:true});
                 document.addEventListener('selectionchange',()=>{clearTimeout(timer);timer=setTimeout(lookup,850)});
                 let scrollTimer;window.addEventListener('scroll',()=>{clearTimeout(scrollTimer);scrollTimer=setTimeout(()=>Lectio.position((innerHeight+scrollY>=document.documentElement.scrollHeight-6)?1:scrollY/Math.max(1,document.documentElement.scrollHeight-innerHeight)),350)},{passive:true});
@@ -101,6 +101,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
     }
     AndroidView(modifier=modifier,factory={ context ->
         SelectionWebView(context) {currentSelect(it)}.apply {
+            keepScreenOn=preferences.keepScreenOn
             setBackgroundColor(background.toArgb())
             settings.apply {
                 javaScriptEnabled=true;domStorageEnabled=false;allowFileAccess=false;allowContentAccess=false
@@ -138,6 +139,7 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
         }
     },update={view ->
         ready(view)
+        view.keepScreenOn=preferences.keepScreenOn
         view.setBackgroundColor(background.toArgb())
         view.settings.textZoom=(view.context.resources.configuration.fontScale*100).toInt()
         val content=html
@@ -147,5 +149,5 @@ internal fun readerResourceResponse(context: Context, book: File, uri: Uri): Web
             if(page.ready) view.evaluateJavascript("if(window.restore)window.restore($restore);var e=document.getElementById(${JSONObject.quote(fragment.orEmpty())});if(e)e.scrollIntoView()",null)
             if(page.ready&&!fragment.isNullOrBlank()) consumeNavigation()
         }
-    },onRelease={view->ready(null);view.removeJavascriptInterface("Lectio");view.stopLoading();view.destroy()})
+    },onRelease={view->ready(null);view.keepScreenOn=false;view.removeJavascriptInterface("Lectio");view.stopLoading();view.destroy()})
 }

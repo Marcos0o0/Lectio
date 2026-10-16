@@ -1,5 +1,13 @@
 # Cambios
 
+## 0.3.0 — 16 de octubre de 2026
+
+- Significados reales de Wiktionary, con categoría gramatical, ejemplos, traducción local al español, original y atribución. Caché independiente y funcionamiento sin clave; el fallo del diccionario no bloquea la traducción.
+- Consulta dividida en Significado, Contexto y Notas, con guardado de vocabulario siempre accesible y explicaciones de Gemini dentro del contexto.
+- Ajustes agrupados por tarea, con navegación atrás, acceso directo desde la consulta a Gemini y regreso al mismo libro.
+- Guardado de preferencias en orden, con actualizaciones sobre el estado actual para evitar que los cambios consecutivos se sobrescriban.
+- Personalización del lector con vista previa: fondo independiente, márgenes, separación de párrafos, justificación, consulta al tocar, ayuda de gestos y pantalla encendida. Restablecer lectura conserva libros, vocabulario y conexión.
+
 ## 0.2.0
 
 - Abre la consulta inferior al tocar o mantener pulsada una palabra; añade «Traducir» al menú de selección de Android y recupera el gesto cuando los controles nativos no envían `touchend` a la página.

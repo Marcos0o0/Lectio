@@ -33,6 +33,7 @@ class LocalTranslation : AutoCloseable {
         val contextTranslation=if(context.isNotBlank()&&context!=selection.text.trim()) translator.translate(context).resultAwait() else ""
         return Lookup(selection.text,translated,contextTranslation=contextTranslation)
     }
+    suspend fun definition(text: String): String = translator.translate(text).resultAwait()
     override fun close() {if(translatorDelegate.isInitialized()) translator.close()}
 }
 

@@ -20,73 +20,151 @@ import androidx.compose.ui.unit.dp
 import app.lectio.reader.R
 import app.lectio.reader.ReaderState
 import app.lectio.reader.ReaderViewModel
+import app.lectio.reader.data.DictionaryEntry
 
 @OptIn(ExperimentalMaterial3Api::class,ExperimentalLayoutApi::class)
 @Composable fun LookupSheet(vm: ReaderViewModel,state: ReaderState,pronounce: (String) -> Unit,settings: () -> Unit) {
     val selection=state.selection ?: return
     val result=state.lookup
+    var tab by remember(selection) {mutableIntStateOf(0)}
     var manual by remember(selection) {mutableStateOf("")}
     var note by remember(selection) {mutableStateOf("")}
-    var annotation by remember(selection) {mutableStateOf(false)}
     val isWord=selection.text.trim().split(Regex("\\s+")).size==1
     val canSave=selection.text.trim().split(Regex("\\s+")).size<=12
-    val uriHandler=LocalUriHandler.current
     ModalBottomSheet(onDismissRequest=vm::dismissSelection,sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
-        Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=24.dp).padding(bottom=32.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-            Row(verticalAlignment=Alignment.CenterVertically) {
-                Text(if(isWord) selection.text else "Traducción",Modifier.weight(1f),style=MaterialTheme.typography.headlineMedium,maxLines=2,overflow=TextOverflow.Ellipsis)
+        Column(Modifier.fillMaxWidth().fillMaxHeight(.94f).imePadding()) {
+            Row(Modifier.padding(start=24.dp,end=12.dp,bottom=8.dp),verticalAlignment=Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(if(isWord) selection.text else "Traducción",style=MaterialTheme.typography.headlineMedium,maxLines=2,overflow=TextOverflow.Ellipsis)
+                    state.dictionary?.phonetic?.takeIf {it.isNotBlank()}?.let {Text(it,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)}
+                }
                 IconButton(onClick={pronounce(selection.text)}) {Icon(Icons.Outlined.VolumeUp,"Escuchar texto en inglés")}
                 IconButton(onClick=vm::dismissSelection) {Icon(Icons.Outlined.Close,"Cerrar consulta")}
             }
-            if(!isWord) SelectionContainer {Text(selection.text,style=MaterialTheme.typography.bodyMedium,maxLines=7,overflow=TextOverflow.Ellipsis)}
-            if(state.lookupLoading) Row(horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically) {CircularProgressIndicator(Modifier.size(22.dp),strokeWidth=2.dp);Text("Traduciendo…")}
-            if(state.translationNeedsDownload||state.translationDownloading) {
-                Text("Traduce sin conexión",style=MaterialTheme.typography.titleMedium)
-                Text("Descarga español una vez (alrededor de 30 MB). Después podrás traducir palabras y frases sin clave ni cobros por consulta.",style=MaterialTheme.typography.bodyMedium)
-                Button(onClick={vm.downloadTranslation()},enabled=!state.translationDownloading,modifier=Modifier.fillMaxWidth()) {Text(if(state.translationDownloading) "Descargando idioma…" else "Descargar por Wi-Fi")}
-                if(state.translationDownloading) LinearProgressIndicator(Modifier.fillMaxWidth())
-                else TextButton(onClick={vm.downloadTranslation(false)},modifier=Modifier.fillMaxWidth()) {Text("Descargar usando datos móviles")}
-            }
-            state.lookupError?.let {
-                Text(it,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.error)
-                if(!state.translationNeedsDownload&&!state.translationDownloading) OutlinedButton(onClick={vm.query("translate",false)}) {Text("Reintentar traducción")}
-            }
-            if(result!=null) {
-                SelectionContainer { Column(verticalArrangement=Arrangement.spacedBy(12.dp)) {
-                    Text(result.translation,style=if(isWord) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge)
-                    if(result.definition.isNotBlank()) Text(result.definition,style=MaterialTheme.typography.bodyMedium)
-                    if(result.synonyms.isNotBlank()) Text("Sinónimos: ${result.synonyms}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    if(result.contextTranslation.isNotBlank()) {
-                        Text("En esta oración",style=MaterialTheme.typography.titleSmall)
-                        Text(selection.context,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                        Text(result.contextTranslation,style=MaterialTheme.typography.bodyMedium)
-                    }
-                } }
-                if(result.source.startsWith("Google Translate")) {
-                    Image(painterResource(if(MaterialTheme.colorScheme.surface.luminance()<.5f) R.drawable.google_translate_dark else R.drawable.google_translate_light),"Powered by Google Translate",Modifier.width(150.dp).height(48.dp).clickable {uriHandler.openUri("https://translate.google.com")})
-                    Text("Traducción automática · en el dispositivo",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                } else Text(result.source,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                if(result.source.startsWith("Gemini")||result.source.startsWith("IA")) Text("Generado con IA. Puede contener errores.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            if(result!=null&&canSave) Button(onClick={vm.saveWord()},Modifier.fillMaxWidth(),enabled=!state.lookupLoading) {Icon(Icons.Outlined.BookmarkAdd,null);Spacer(Modifier.width(8.dp));Text(if(state.words.any {it.text.equals(selection.text,true)}) "Actualizar vocabulario" else "Guardar en vocabulario")}
-            HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
-            if(state.preferences.key.isBlank()) {
-                OutlinedButton(onClick=settings,Modifier.fillMaxWidth()) {Text("Conectar Gemini para explicar")}
-            } else {
-                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp),verticalArrangement=Arrangement.spacedBy(4.dp)) {
-                    listOf("explain" to "Explicar significado","grammar" to "Gramática","simplify" to "Inglés sencillo").forEach { (action,label) -> AssistChip(onClick={vm.query(action)},enabled=!state.lookupLoading,label={Text(label)}) }
+            PrimaryTabRow(selectedTabIndex=tab) {
+                listOf(if(isWord) "Significado" else "Traducción","Contexto","Notas").forEachIndexed {index,title ->
+                    Tab(selected=tab==index,onClick={tab=index},text={Text(title,maxLines=1)})
                 }
-                Text("Estas acciones usan tu cuenta y pueden consumir saldo.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            TextButton(onClick={annotation=!annotation},contentPadding=PaddingValues(0.dp)) {Icon(Icons.Outlined.BorderColor,null);Spacer(Modifier.width(8.dp));Text("Subrayar o añadir nota")}
-            if(annotation) {
-                OutlinedTextField(note,{note=it},Modifier.fillMaxWidth(),label={Text("Nota (opcional)")},maxLines=4)
-                FilledTonalButton(onClick={vm.annotate(selection.text,note,"highlight");vm.dismissSelection()},Modifier.fillMaxWidth()) {Text("Guardar subrayado")}
-                if(result==null&&canSave) {
-                    OutlinedTextField(manual,{manual=it},Modifier.fillMaxWidth(),label={Text("Mi traducción")},maxLines=4)
-                    OutlinedButton(onClick={vm.saveWord(manual)},enabled=manual.isNotBlank(),modifier=Modifier.fillMaxWidth()) {Text("Guardar traducción propia")}
+            key(tab) {
+                Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
+                    when(tab) {
+                        0 -> {
+                            if(!isWord) SelectionContainer {Text(selection.text,style=MaterialTheme.typography.bodyMedium)}
+                            if(state.lookupLoading&&result==null) LookupProgress("Traduciendo…")
+                            if(state.translationNeedsDownload||state.translationDownloading) {
+                                Text("Descarga español para traducir",style=MaterialTheme.typography.titleMedium)
+                                Text("Alrededor de 30 MB. Se descarga una vez y funciona sin conexión.",style=MaterialTheme.typography.bodyMedium)
+                                Button(onClick={vm.downloadTranslation()},enabled=!state.translationDownloading,modifier=Modifier.fillMaxWidth()) {Text(if(state.translationDownloading) "Descargando idioma…" else "Descargar por Wi-Fi")}
+                                if(state.translationDownloading) LinearProgressIndicator(Modifier.fillMaxWidth())
+                                else TextButton(onClick={vm.downloadTranslation(false)}) {Text("Descargar usando datos móviles")}
+                            }
+                            state.lookupError?.let {Text(it,color=MaterialTheme.colorScheme.error);TextButton(onClick={vm.query("translate",false)}) {Text("Reintentar traducción")}}
+                            if(result!=null) {
+                                Text("Traducción",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                SelectionContainer {Text(result.translation,style=if(isWord) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.bodyLarge)}
+                                TranslationCredit(result.source)
+                            }
+                            if(isWord) {
+                                HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
+                                if(state.definitionLoading) LookupProgress("Buscando significado…")
+                                state.dictionary?.let {DictionaryMeaning(it)}
+                                if(!state.definitionLoading&&state.dictionary==null) {
+                                    Text(state.definitionError ?: if(state.preferences.dictionaryEnabled) "No encontramos una entrada para esta palabra." else "Activa el diccionario en Ajustes para consultar palabras nuevas.",style=MaterialTheme.typography.bodyMedium,color=if(state.definitionError!=null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant)
+                                    if(state.preferences.dictionaryEnabled) TextButton(onClick=vm::define) {Text("Reintentar significado")}
+                                }
+                            }
+                            if(result?.definition?.isNotBlank()==true) {
+                                Text("Explicación contextual",style=MaterialTheme.typography.titleMedium)
+                                Text(result.definition,style=MaterialTheme.typography.bodyMedium)
+                                Text(result.source,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            TextButton(onClick={tab=1},contentPadding=PaddingValues(0.dp)) {Text("Ver la oración del libro")}
+                        }
+                        1 -> {
+                            Text("En esta oración",style=MaterialTheme.typography.titleMedium)
+                            SelectionContainer {Text(selection.context.ifBlank {selection.text},style=MaterialTheme.typography.bodyLarge)}
+                            val translated=result?.contextTranslation?.takeIf {it.isNotBlank()} ?: if(selection.context.isBlank()||selection.context.trim()==selection.text.trim()) result?.translation else null
+                            if(translated!=null) {HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant);SelectionContainer {Text(translated,style=MaterialTheme.typography.bodyLarge)};TranslationCredit(result?.source.orEmpty())}
+                            else Text("La traducción de la oración aparecerá cuando esté lista la consulta.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
+                            Text("Entender el fragmento",style=MaterialTheme.typography.titleMedium)
+                            if(state.preferences.key.isBlank()) {
+                                Text("Puedes añadir explicaciones sobre el uso de esta palabra y la gramática con tu cuenta de Gemini.",style=MaterialTheme.typography.bodyMedium)
+                                OutlinedButton(onClick=settings,Modifier.fillMaxWidth()) {Text("Conectar Gemini")}
+                            } else {
+                                Text("Cada acción puede consumir saldo de tu cuenta.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("explain" to "Explicar significado","grammar" to "Gramática","simplify" to "Inglés sencillo").forEach {(action,label) -> AssistChip(onClick={vm.query(action)},enabled=!state.lookupLoading,label={Text(label)})}}
+                            }
+                            if(state.lookupLoading) LookupProgress("Consultando…")
+                            state.lookupError?.let {Text(it,color=MaterialTheme.colorScheme.error)}
+                            if(result?.definition?.isNotBlank()==true) {
+                                Text(result.definition,style=MaterialTheme.typography.bodyLarge)
+                                if(result.example.isNotBlank()) {Text("Ejemplo",style=MaterialTheme.typography.titleSmall);Text(result.example)}
+                                if(result.synonyms.isNotBlank()) Text("Sinónimos: ${result.synonyms}")
+                                Text("${result.source}. Generado con IA; puede contener errores.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        }
+                        2 -> {
+                            Text("Fragmento seleccionado",style=MaterialTheme.typography.titleSmall)
+                            SelectionContainer {Text(selection.text,style=MaterialTheme.typography.bodyLarge)}
+                            OutlinedTextField(note,{note=it},Modifier.fillMaxWidth(),label={Text("Nota (opcional)")},maxLines=5)
+                            FilledTonalButton(onClick={vm.annotate(selection.text,note,"highlight");vm.dismissSelection()},Modifier.fillMaxWidth()) {Icon(Icons.Outlined.BorderColor,null);Spacer(Modifier.width(8.dp));Text("Guardar subrayado")}
+                            if(result==null&&canSave) {
+                                OutlinedTextField(manual,{manual=it},Modifier.fillMaxWidth(),label={Text("Mi traducción")},maxLines=4)
+                                OutlinedButton(onClick={vm.saveWord(manual)},enabled=manual.isNotBlank(),modifier=Modifier.fillMaxWidth()) {Text("Guardar traducción propia")}
+                            }
+                        }
+                    }
+                }
+            }
+            if(result!=null&&canSave) {
+                HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
+                Button(onClick={vm.saveWord()},Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=12.dp),enabled=!state.lookupLoading&&!state.definitionLoading) {
+                    Icon(Icons.Outlined.BookmarkAdd,null);Spacer(Modifier.width(8.dp));Text(if(state.words.any {it.text.equals(selection.text,true)}) "Actualizar vocabulario" else "Guardar en vocabulario")
                 }
             }
         }
     }
+}
+
+@Composable private fun LookupProgress(label: String) {
+    Row(horizontalArrangement=Arrangement.spacedBy(12.dp),verticalAlignment=Alignment.CenterVertically) {CircularProgressIndicator(Modifier.size(20.dp),strokeWidth=2.dp);Text(label,style=MaterialTheme.typography.bodyMedium)}
+}
+
+@Composable private fun DictionaryMeaning(entry: DictionaryEntry) {
+    var original by remember(entry.word) {mutableStateOf(false)}
+    var more by remember(entry.word) {mutableStateOf(false)}
+    val uri=LocalUriHandler.current
+    Text("Significados",style=MaterialTheme.typography.titleMedium)
+    (if(more) entry.senses else entry.senses.take(2)).forEachIndexed {index,sense ->
+        Column(verticalArrangement=Arrangement.spacedBy(6.dp)) {
+            Text("${index+1}. ${partOfSpeech(sense.partOfSpeech)}",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.primary)
+            SelectionContainer {Text(sense.spanish.ifBlank {sense.definition},style=MaterialTheme.typography.bodyLarge)}
+            if(sense.example.isNotBlank()) Text(sense.example,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(original&&sense.spanish.isNotBlank()) Text(sense.definition,style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+    if(entry.senses.size>2) TextButton(onClick={more=!more},contentPadding=PaddingValues(0.dp)) {Text(if(more) "Ver menos significados" else "Ver ${entry.senses.size-2} significados más")}
+    if(entry.senses.any {it.spanish.isNotBlank()}) TextButton(onClick={original=!original},contentPadding=PaddingValues(0.dp)) {Text(if(original) "Ocultar original en inglés" else "Ver original en inglés")}
+    Column {
+        Text("Autores de Wiktionary${if(entry.cached) " · guardado en el dispositivo" else ""}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        if(entry.senses.any {it.spanish.isNotBlank()}) Text("Definiciones traducidas automáticamente.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        entry.sources.firstOrNull()?.let {url -> TextButton(onClick={uri.openUri(url)},contentPadding=PaddingValues(0.dp)) {Text("Ver entrada original")}}
+        entry.licenses.forEach {license -> TextButton(onClick={uri.openUri(license.url)},contentPadding=PaddingValues(0.dp)) {Text(license.name,style=MaterialTheme.typography.bodySmall)}}
+    }
+}
+
+private fun partOfSpeech(part: String)=when(part) {
+    "noun"->"Sustantivo";"verb"->"Verbo";"adjective"->"Adjetivo";"adverb"->"Adverbio";"pronoun"->"Pronombre";"preposition"->"Preposición";"conjunction"->"Conjunción";"interjection","exclamation"->"Interjección";"determiner"->"Determinante";else->part.ifBlank {"Uso"}
+}
+
+@Composable private fun TranslationCredit(source: String) {
+    val uri=LocalUriHandler.current
+    if(source.startsWith("Google Translate")) {
+        Column {
+            Image(painterResource(if(MaterialTheme.colorScheme.surface.luminance()<.5f) R.drawable.google_translate_dark else R.drawable.google_translate_light),"Powered by Google Translate",Modifier.width(150.dp).height(48.dp).clickable {uri.openUri("https://translate.google.com")})
+            Text("Traducción automática en el dispositivo",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    } else Text(source,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
 }

@@ -35,9 +35,11 @@ class SettingsStore(context: Context) {
         val defaults=Preferences()
         val endpoint=prefs.getString("endpoint",defaults.endpoint)!!
         val provider=prefs.getString("provider",if(endpoint.contains("generativelanguage.googleapis.com")) "gemini" else "compatible")!!
-        return Preferences(prefs.getString("theme", "Oscuro")!!,prefs.getInt("fontSize",20),prefs.getFloat("lineHeight",1.8f),prefs.getBoolean("serif",true),endpoint,prefs.getString("model",defaults.model)!!,decrypt(prefs.getString("key","")!!),provider)
+        return Preferences(prefs.getString("theme", "Oscuro")!!,prefs.getInt("fontSize",20).coerceIn(16,32),prefs.getFloat("lineHeight",1.8f).coerceIn(1.4f,2.2f),prefs.getBoolean("serif",true),endpoint,prefs.getString("model",defaults.model)!!,decrypt(prefs.getString("key","")!!),provider,
+            prefs.getString("readingTheme","Aplicación")!!,prefs.getInt("margin",28).coerceIn(12,48),prefs.getFloat("paragraphSpacing",1f).coerceIn(.5f,1.5f),prefs.getBoolean("justified",false),prefs.getBoolean("keepScreenOn",false),prefs.getBoolean("tapToTranslate",true),prefs.getBoolean("showReadingHint",true),prefs.getBoolean("dictionaryEnabled",true))
     }
-    fun save(p: Preferences) { prefs.edit().putString("theme",p.theme).putInt("fontSize",p.fontSize).putFloat("lineHeight",p.lineHeight).putBoolean("serif",p.serif).putString("endpoint",p.endpoint.trim().trimEnd('/')).putString("model",p.model.trim()).putString("key",encrypt(p.key.trim())).putString("provider",p.provider).apply() }
+    fun save(p: Preferences) { prefs.edit().putString("theme",p.theme).putInt("fontSize",p.fontSize).putFloat("lineHeight",p.lineHeight).putBoolean("serif",p.serif).putString("endpoint",p.endpoint.trim().trimEnd('/')).putString("model",p.model.trim()).putString("key",encrypt(p.key.trim())).putString("provider",p.provider)
+        .putString("readingTheme",p.readingTheme).putInt("margin",p.margin).putFloat("paragraphSpacing",p.paragraphSpacing).putBoolean("justified",p.justified).putBoolean("keepScreenOn",p.keepScreenOn).putBoolean("tapToTranslate",p.tapToTranslate).putBoolean("showReadingHint",p.showReadingHint).putBoolean("dictionaryEnabled",p.dictionaryEnabled).apply() }
     var seeded: Boolean
         get() = prefs.getBoolean("seeded",false)
         set(value) { prefs.edit().putBoolean("seeded",value).apply() }

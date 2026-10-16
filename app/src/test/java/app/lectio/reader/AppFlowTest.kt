@@ -46,6 +46,17 @@ class AppFlowTest {
         compose.waitUntil(5000) {compose.onAllNodes(hasText("Oscuro") and isSelected()).fetchSemanticsNodes().isNotEmpty()}
         compose.waitForIdle()
         capture("settings-dark")
+        compose.runOnIdle {
+            val vm=androidx.lifecycle.ViewModelProvider(compose.activity)[ReaderViewModel::class.java]
+            vm.preferences {it.copy(margin=44)}
+            vm.preferences {it.copy(paragraphSpacing=1.5f)}
+            vm.preferences {it.copy(keepScreenOn=true)}
+            org.junit.Assert.assertEquals(44,vm.state.value.preferences.margin)
+            org.junit.Assert.assertEquals(1.5f,vm.state.value.preferences.paragraphSpacing,.001f)
+            org.junit.Assert.assertTrue(vm.state.value.preferences.keepScreenOn)
+        }
+        compose.waitUntil(5000) {app.lectio.reader.data.SettingsStore(compose.activity).load().let {it.margin==44&&it.paragraphSpacing==1.5f&&it.keepScreenOn}}
+        compose.runOnIdle {androidx.lifecycle.ViewModelProvider(compose.activity)[ReaderViewModel::class.java].preferences {it.copy(margin=28,paragraphSpacing=1f,keepScreenOn=false)}}
         compose.onNodeWithText("Biblioteca").performClick()
         compose.onAllNodesWithText("A Little More Slowly")[0].performClick()
         compose.onNodeWithContentDescription("Volver a la biblioteca").assertExists()

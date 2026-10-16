@@ -3,6 +3,8 @@ package app.lectio.reader.ui
 import android.webkit.WebView
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -32,6 +34,7 @@ import java.io.File
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun ReaderScreen(vm: ReaderViewModel,state: ReaderState,snackbars: SnackbarHostState) {
     val book=state.current ?: return
+    val readingScheme=readingColors(state.preferences)
     var panel by rememberSaveable(book.id) {mutableStateOf<String?>(null)}
     var webView by remember {mutableStateOf<WebView?>(null)}
     var searchTerm by rememberSaveable(book.id) {mutableStateOf("")}
@@ -61,18 +64,17 @@ import java.io.File
         } }},contentWindowInsets=WindowInsets(0,0,0,0)
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Text("Toca una palabra para traducir. Mantén pulsado para seleccionar una frase.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(state.preferences.showReadingHint) Text(if(state.preferences.tapToTranslate) "Toca una palabra para ver su significado. Mantén pulsado para seleccionar una frase." else "Mantén pulsada una palabra o frase para consultar.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             key(book.id,book.chapter) {
-                ReaderWebView(book,state.preferences,MaterialTheme.colorScheme.background,MaterialTheme.colorScheme.onBackground,state.annotations,searchTerm,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{vm.readerProgress(book.id,book.chapter,it)},{index,anchor->vm.chapter(index,fragment=anchor)},vm::navigationConsumed)
+                ReaderWebView(book,state.preferences,readingScheme.background,readingScheme.onBackground,state.annotations,searchTerm,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{vm.readerProgress(book.id,book.chapter,it)},{index,anchor->vm.chapter(index,fragment=anchor)},vm::navigationConsumed)
             }
         }
     }
     when(panel) {
-        "type" -> ModalBottomSheet(onDismissRequest={panel=null}) {
-            Column(Modifier.fillMaxWidth().padding(horizontal=24.dp).padding(bottom=32.dp)) {
-                Text("Apariencia de lectura",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(20.dp))
-                Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Sistema","Claro","Oscuro").forEach { FilterChip(selected=state.preferences.theme==it,onClick={vm.preferences(state.preferences.copy(theme=it))},label={Text(it)}) }}
-                ReadingPreferences(state.preferences,vm::preferences)
+        "type" -> ModalBottomSheet(onDismissRequest={panel=null},sheetState=rememberModalBottomSheetState(skipPartiallyExpanded=true)) {
+            Column(Modifier.fillMaxWidth().fillMaxHeight(.94f).padding(horizontal=24.dp)) {
+                Row(verticalAlignment=Alignment.CenterVertically) {Text("Lectura",Modifier.weight(1f),style=MaterialTheme.typography.headlineSmall);IconButton(onClick={panel=null}) {Icon(Icons.Outlined.Close,"Cerrar apariencia")}}
+                Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(bottom=32.dp)) {ReadingPreferences(state.preferences,vm::preferences)}
             }
         }
         "contents" -> ModalBottomSheet(onDismissRequest={panel=null}) {

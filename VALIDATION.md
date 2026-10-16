@@ -1,58 +1,62 @@
-# Validación de Lectio 0.2.0
+# Validación de Lectio 0.3.0
 
-Fecha: 16 de octubre de 2026. Windows, JDK 21 de Android Studio, SDK 36. Paquete `app.lectio.reader`, versión 0.2.0 (código 3), mínimo API 26 y objetivo API 36.
+16 de octubre de 2026. Windows, JDK 21 de Android Studio y SDK 36. Paquete `app.lectio.reader`, versión 0.3.0 (código 4), mínimo API 26, objetivo API 36.
 
-## Comprobaciones
+## Compilación y pruebas
 
 ```powershell
 $env:JAVA_HOME = 'C:\Program Files\Android\Android Studio\jbr'
-.\gradlew.bat :app:assembleDebug :app:testDebugUnitTest :app:lintDebug :app:assembleDebugAndroidTest --max-workers=1 --console=plain
+.\gradlew.bat :app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug --offline --max-workers=1 --console=plain '-Dorg.gradle.jvmargs=-Xmx1024m -Dfile.encoding=UTF-8'
 ```
 
-- **17 pruebas JVM, cero fallos:** ocho de EPUB/lógica, dos de almacenamiento, tres del interceptor WebView, tres de Gemini y una del flujo Compose con Robolectric API 35.
-- **Dos pruebas instrumentadas, cero fallos**, en Android 15/API 35 x86_64 con Chromium real (`com.android.webview` 124.0.6367.219).
-- Lint sin errores: 12 advertencias y tres sugerencias, principalmente dependencias/KTX y estados primitivos de Compose. El observador táctil conserva la gestión de clics y accesibilidad de WebView; no sustituye su comportamiento nativo.
-- APK: `app/build/outputs/apk/debug/app-debug.apk`. Firma verificada con `apksigner`, esquema v2. El SHA-256 final figura al final de este informe.
+- Compilación correcta del APK y del APK de pruebas.
+- **21 pruebas JVM, cero fallos:** ocho de EPUB, tres de recursos WebView, tres de Gemini, tres de diccionario, tres de almacenamiento/preferencias y una del flujo Compose.
+- La regresión del flujo Compose aplica cambios consecutivos de márgenes, párrafos y pantalla encendida en el mismo turno, comprueba que se acumulan y espera su persistencia. El ViewModel aplica cada modificación sobre el estado más reciente; una cola guarda las preferencias en orden. Actualizar biblioteca o vocabulario no restaura una copia anterior de ajustes.
+- Lint: **cero errores**, 12 advertencias y tres sugerencias, principalmente dependencias/KTX y estados primitivos.
+- Firma del APK verificada con `apksigner`, esquema v2; `aapt` confirma versión, código y niveles de API. El hash final figura al final del informe.
 
-## Selección y traducción
+## Pruebas en Android
 
-La prueba nativa localiza una palabra mediante su geometría en Chromium y envía eventos táctiles de Android, sin crear la selección con JavaScript. Una pulsación prolongada sobre «precious» abre la ficha inferior; un toque en «minutes» abre otra consulta. La prueba espera a que Android devuelva el foco al lector antes del siguiente gesto.
-
-Se comprobó la descarga inicial real del idioma y la traducción con el modelo Google ML Kit en Android. La ficha muestra la palabra traducida y la oración de contexto traducida. No usa un listado de significados escrito a mano. Una selección posterior mediante rango DOM verifica el contenido de varias palabras y su traducción con el mismo modelo; **el arrastre físico de los tiradores de selección de una frase sigue pendiente en hardware**.
-
-El flujo también comprueba capítulos renderizados, cambio de capítulo, marcador, vuelta a biblioteca y reapertura, y fondos claro/oscuro calculados por Chromium. La segunda prueba abre la configuración de Gemini sin introducir una clave real ni hacer peticiones de pago.
+**Tres pruebas instrumentadas aprobadas**, `OK (3 tests)`, 32,782 segundos, en el emulador Android 15/API 35 x86_64 con Chromium real. No se utilizó un teléfono físico.
 
 ```powershell
 adb shell am instrument -w -r -e class app.lectio.reader.ReaderDeviceTest app.lectio.reader.test/androidx.test.runner.AndroidJUnitRunner
 ```
 
-El resultado debe indicar `OK (2 tests)`. El APK de pruebas está en `app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk`. La descarga del idioma necesita red la primera vez; las consultas posteriores pueden resolverse en el dispositivo o con la caché.
+La primera comprueba opciones de página y controles, recreación de la actividad, persistencia, CSS calculado en Chromium (fondo, margen, justificación y separación de párrafos), pantalla encendida, ayuda oculta y restablecimiento desde el panel completamente abierto del lector.
 
-## Gemini y almacenamiento
+La segunda usa geometría del DOM para ubicar una palabra y eventos táctiles reales de Android para mantener pulsado «precious» y tocar «minutes». Verifica traducción con el modelo Google ML Kit, una entrada real de Wiktionary, pestañas de contexto y notas, apertura de Gemini y regreso al mismo libro, capítulos, marcador y reapertura. La selección de varias palabras se crea con un rango DOM para comprobar su contenido y traducción: **no valida el arrastre físico de los tiradores de selección**.
 
-Las pruebas de Gemini verifican separación entre instrucciones y datos del libro, límite de contexto de 1.200 caracteres, límite de salida de 800 tokens, lectura del JSON con traducción de contexto y rechazo de respuestas bloqueadas/truncadas. Las claves de caché distinguen proveedor, acción y contexto. La persistencia comprueba que la traducción de contexto sobreviva a reabrir SQLite.
+La tercera comprueba los temas claro/oscuro en la app y el lector, y abre la configuración de Gemini sin introducir una clave ni efectuar solicitudes de pago. Cada prueba restablece sus preferencias iniciales para no depender de las elecciones de otra prueba.
 
-No se usaron claves personales ni se hicieron consultas reales a Gemini. Su respuesta real, cuotas, saldo y permisos deben comprobarse con la cuenta del usuario. No se entrega una clave común en el APK ni un backend para compartir una cuenta de pago con terceros.
+## Significados y atribución
 
-## Capturas nativas
+Se consultó la API REST pública de Wiktionary con una palabra del libro de muestra y se comprobó el resultado en Android. Solo se envía la palabra normalizada; el libro y la oración no se envían al diccionario. El cliente limita la respuesta a 512 KB, convierte HTML a texto, muestra hasta cuatro acepciones y conserva entrada y licencia CC BY-SA 4.0. Se muestran dos sentidos inicialmente; los demás y el original inglés se despliegan a petición.
 
-Capturas del emulador Android 15: teléfono 720 × 1600/densidad 280, ventana amplia 1280 × 1800/densidad 240, horizontal 1600 × 720 y texto al 130 %. Las clases de ventana no son tablets físicas.
+Las definiciones españolas son traducciones automáticas locales de las originales inglesas, no contenido editorial revisado ni significados escritos a mano. Se conservan los créditos en la caché y en las palabras guardadas. Las pruebas cubren normalización, rutas no válidas, lectura del formato, límites, enlaces permitidos y persistencia de la entrada y su traducción. Las consultas nuevas requieren internet; las entradas guardadas pueden reutilizarse sin otra consulta al servicio.
 
-- [Biblioteca](.impeccable/review/android15/phone-library-dark-android15.png) y [lector oscuro](.impeccable/review/android15/phone-reader-dark-android15.png)
-- [Descarga inicial](.impeccable/review/android15/phone-download-android15.png), [palabra y oración](.impeccable/review/android15/phone-lookup-dark-android15.png), [frase](.impeccable/review/android15/phone-phrase-android15.png)
-- [Ajustes oscuros](.impeccable/review/android15/phone-settings-dark-android15.png), [claros](.impeccable/review/android15/phone-settings-light-android15.png), [conexión de Gemini](.impeccable/review/android15/phone-gemini-setup-android15.png)
-- [Lector claro](.impeccable/review/android15/phone-reader-light-android15.png), [vocabulario](.impeccable/review/android15/phone-vocabulary-dark-android15.png), [actividad](.impeccable/review/android15/phone-activity-dark-android15.png)
-- [Texto al 130 %](.impeccable/review/android15/phone-settings-font130-android15.png)
-- [Biblioteca amplia](.impeccable/review/android15/tablet-library-dark-android15.png), [lector amplio](.impeccable/review/android15/tablet-reader-dark-android15.png), [lector horizontal](.impeccable/review/android15/phone-landscape-reader-dark-android15.png)
+Los fallos del diccionario no bloquean la traducción local. La descarga inicial del idioma ya se verificó en 0.2.0; esta ejecución reutilizó el modelo descargado. No se usaron claves personales ni llamadas reales a Gemini. Su facturación y respuesta real siguen pendientes con una cuenta del usuario.
 
-La paleta de la versión 0.1.1 se conserva: 14 pares de texto por tema con contraste calculado ≥4,70:1 y contornos principales ≥3,98:1. [Mediciones](.impeccable/review/android15/contrast-pairs.txt). No equivale a una certificación completa de accesibilidad. Los distintivos de Google Translate son recursos oficiales sin modificar; procedencia en THIRD_PARTY_NOTICES.md.
+## Evidencia visual
 
-## Regresiones y límites
+Capturas nuevas del emulador en [.impeccable/review/v030](.impeccable/review/v030). Las de `android15` corresponden a la versión anterior.
 
-Se conserva la corrección de 0.1.1: las solicitudes internas `data:` y `about:blank` de WebView no pasan por la detección de MIME con un nombre de archivo nulo. Las rutas externas y recursos activos de los libros siguen bloqueados. El lector conserva el margen inferior para controles y acción de importación en ventanas amplias.
+- [Significado](.impeccable/review/v030/phone-lookup-dark-android15.png), [contexto](.impeccable/review/v030/phone-context-dark-android15.png) y [notas](.impeccable/review/v030/phone-notes-dark-android15.png).
+- [Ajustes oscuros](.impeccable/review/v030/phone-settings-dark-android15.png), [claros](.impeccable/review/v030/phone-settings-light-android15.png) y [diccionario](.impeccable/review/v030/phone-dictionary-settings-android15.png).
+- [Texto](.impeccable/review/v030/phone-reading-text-android15.png), [página](.impeccable/review/v030/phone-reading-page-android15.png), [controles](.impeccable/review/v030/phone-reading-controls-android15.png) y [lector personalizado](.impeccable/review/v030/phone-reader-custom-android15.png).
+- [Conexión desde el libro](.impeccable/review/v030/phone-gemini-from-reader-android15.png) y [formulario](.impeccable/review/v030/phone-gemini-setup-android15.png).
 
-El Redmi Note 13 5G del usuario no estuvo conectado. Quedan por verificar allí los gestos y el menú del fabricante, los tiradores de selección, TTS y voces, selector de archivos, restauración tras terminar el proceso, TalkBack y libros grandes. La calidad de traducción local es la de un modelo automático, no la de un diccionario editorial; Gemini puede ampliar el contexto de forma opcional. Límites EPUB en README.md.
+Las comprobaciones de tamaño y escala usan ventanas del emulador, no tablets físicas: teléfono 720 × 1600/densidad 280; amplia 1280 × 1800/densidad 240; amplia horizontal 1800 × 1280/densidad 240; teléfono horizontal 1600 × 720/densidad 280; texto al 130 %. En estas capturas se midió la geometría del texto en Chromium y se utilizó una pulsación prolongada nativa de Android; el contenido no se sustituyó por un mockup. En altura compacta, el cuerpo de la ficha se desplaza entre su cabecera y el guardado fijo.
+
+- [Texto al 130 %](.impeccable/review/v030/phone-font130-lookup-android15.png) y [su contexto](.impeccable/review/v030/phone-font130-context-android15.png).
+- [Ventana amplia](.impeccable/review/v030/tablet-lookup-android15.png) y [amplia horizontal](.impeccable/review/v030/tablet-landscape-lookup-android15.png).
+- [Teléfono horizontal](.impeccable/review/v030/phone-landscape-lookup-android15.png), [ficha desplazada](.impeccable/review/v030/phone-landscape-lookup-scrolled-android15.png) y [contexto](.impeccable/review/v030/phone-landscape-context-android15.png).
+- [Panel de lectura completamente abierto](.impeccable/review/v030/phone-reader-appearance-android15.png). La paleta de 0.1.1 se mantiene: contraste de 14 pares de texto por tema ≥4,70:1 y contornos principales ≥3,98:1. [Mediciones](.impeccable/review/android15/contrast-pairs.txt). No es una certificación completa de accesibilidad.
+
+## Límites
+
+El Redmi Note 13 5G del usuario no estuvo conectado. Quedan por verificar allí los tiradores de selección y menú del fabricante, TTS, selector de archivos, restauración tras terminar el proceso, TalkBack y rendimiento con libros grandes. La corrección de apertura de libros de 0.1.1 se conserva. Límites EPUB y almacenamiento en README.md.
 
 ## SHA-256 del APK validado
 
-90F171473320B71D9BC6B11A887AF4D546506A3A9C96EA7DD12D03716ED471CB
+82C275DC0B9F1B847A2B6A8D0C4FA75AA4221964E0EA9374BA6DBDC20072CF4A

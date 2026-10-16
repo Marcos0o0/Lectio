@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T15:46:38Z",
+  "generatedAt": "2026-10-16T22:38:41Z",
   "title": "Design System: Lectio",
   "extensions": {
     "colorMeta": {
@@ -119,35 +119,35 @@
     {
       "name": "Outlined Button",
       "kind": "button",
-      "description": "Native OutlinedButton for optional Gemini connection and its inline form disclosure, translation retry, and personal translation save. Native component: no HTML/CSS preview.",
+      "description": "Native OutlinedButton for optional Gemini connection and its inline form disclosure, and personal translation save. Translation/dictionary retry use TextButton. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Text Button",
       "kind": "button",
-      "description": "Native TextButton for dialog decisions, lower emphasis actions, and annotation disclosure. Native component: no HTML/CSS preview.",
+      "description": "Native TextButton for dialog decisions, lower emphasis actions, translation/dictionary retry, original/additional-meaning disclosure, and reading reset. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Outlined Field",
       "kind": "input",
-      "description": "Native OutlinedTextField for search, optional connection, personal translation, and notes. Search is single line; translation/notes allow up to four lines. The encrypted personal key uses password transformation and visibility control; provider, model, and endpoint stay under advanced disclosure. Native component: no HTML/CSS preview.",
+      "description": "Native OutlinedTextField for search, optional connection, personal translation, and notes. Search is single line; translation allows up to four lines and lookup notes up to five. The encrypted personal key uses password transformation and visibility control; provider, model, and endpoint stay under advanced disclosure. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Adaptive Navigation",
       "kind": "nav",
-      "description": "Native NavigationBar below 600dp and NavigationRail from 600dp; four labeled destinations. Hidden during reading. Component selection, ripple and focus stay Material defaults. Native component: no HTML/CSS preview. Library bottom safe-drawing insets keep its import FAB above the expanded-window taskbar.",
+      "description": "Native NavigationBar below 600dp and NavigationRail from 600dp; four labeled destinations. Hidden during reading. Settings groups lead to Lectura, Diccionario y traducción, and Gemini. PrimaryTabRow separates lookup tasks and reading preferences. Optional Gemini settings from lookup opens a full-screen native dialog; back returns to the same book. Selection, ripple and focus stay Material defaults. Library bottom safe-drawing insets keep its import FAB above the expanded-window taskbar. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Selection and Action Chips",
       "kind": "chip",
-      "description": "Native FilterChip for filters, theme and reading font; AssistChip for explicit Gemini explanation, grammar, and simpler-English actions, disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
+      "description": "Native FilterChip for filters, application theme, reading font/background, margins, and paragraph spacing; AssistChip for explicit Gemini explanation, grammar, and simpler-English actions in Contexto, disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -163,26 +163,26 @@
       "name": "Meaning Sheet",
       "kind": "custom",
       "refersTo": "lookup-heading",
-      "description": "Native fully expanded, scrollable ModalBottomSheet opened by word tap or text selection. Shows translation and translated sentence, pronunciation, official Google Translate attribution for local results, one-time Wi-Fi/mobile-data download choices, progress/errors/retry, vocabulary save up to 12 words, and disclosed optional Gemini actions with provenance. Annotation disclosure contains notes, highlighting, and personal translation when no result exists. Native component: no HTML/CSS preview.",
+      "description": "Native fully expanded ModalBottomSheet with fixed word/optional pronunciation/speech/close header, stable Significado or Traducción / Contexto / Notas tabs, scrollable body, and fixed vocabulary save for translated selections up to 12 words. Local translation retains official Google Translate attribution and one-time Wi-Fi/mobile-data download choices. Wiktionary provides grammatical categories, up to four senses (two initially), examples, English-original disclosure, entry and CC BY-SA 4.0 links, and separate loading/error/cache states. Spanish definitions use local automatic translation when available. Contexto holds the sentence and optional Gemini actions; Notas holds notes, highlights and personal translation when no result exists. Saved meanings retain dictionary credit. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Reading Surface",
       "kind": "custom",
-      "description": "Isolated Android WebView with theme background and foreground; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px. Word taps and long press feed the native translation sheet; native selection adds Traducir as a fallback. Selection uses primary-container paired roles; saved highlights use secondary-container paired roles. Blockquotes use surface-container, dividers use outline-variant, and the error fallback uses current page colors. h2 uses flow-root, 1em top padding, and .7em bottom margin to prevent paragraph margin collapse. Native component: no fabricated HTML/CSS preview.",
+      "description": "Isolated Android WebView with reading background following the app or independently Claro/Oscuro; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px; margins 12/28/44 CSS px, paragraph spacing .5/1/1.5em and optional justification. Tap consultation is optional; long press and native Traducir remain available. Keep-screen-on and gesture-hint preferences are separate. A live native preview shares Texto/Página/Controles preferences with the fully expanded scrollable appearance sheet. Reading reset preserves app theme, books and credentials. Selection/highlights use paired theme containers; blockquotes use surface-container, dividers use outline-variant, and error fallback uses current page colors. h2 retains flow-root, 1em top padding, and .7em bottom margin. Native component: no fabricated HTML/CSS preview.",
       "html": "",
       "css": ""
     }
   ],
   "narrative": {
     "northStar": "A quiet reading room",
-    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word or selecting text opens its translation and translated sentence in a native sheet. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
+    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word opens translation and real dictionary meanings in a native sheet, with separate context and notes tabs; selecting a phrase opens translation. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
     "keyCharacteristics": [
       "Modern graphite dark surfaces, slate containers, soft blue actions, and a cool light scheme.",
       "Serif literary headings with sans serif functional text.",
       "Material 3 controls, tonal containers, and native modal sheets.",
-      "Adjustable reading type and local translations with visible provenance.",
+      "Adjustable reading type, page and controls, with a live preview and visible dictionary/translation provenance.",
       "Four destinations that adapt from bottom navigation to a rail."
     ],
     "rules": [
