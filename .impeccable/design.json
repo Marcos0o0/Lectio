@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-15T22:08:50Z",
+  "title": "Design System: Lectio",
+  "extensions": {
+    "colorMeta": {
+      "primary-light": { "role": "primary", "displayName": "Forest green" },
+      "primary-dark": { "role": "primary", "displayName": "Pale sage" },
+      "primary-container-light": { "role": "primary", "displayName": "Sage paper container" },
+      "primary-container-dark": { "role": "primary", "displayName": "Forest container" },
+      "secondary-light": { "role": "secondary", "displayName": "Warm brown" },
+      "secondary-dark": { "role": "secondary", "displayName": "Soft peach" },
+      "secondary-container-light": { "role": "secondary", "displayName": "Warm review container" },
+      "secondary-container-dark": { "role": "secondary", "displayName": "Brown review container" },
+      "paper-light": { "role": "neutral", "displayName": "Warm paper" },
+      "paper-dark": { "role": "neutral", "displayName": "Night paper" },
+      "ink-light": { "role": "neutral", "displayName": "Forest ink" },
+      "ink-dark": { "role": "neutral", "displayName": "Light paper ink" }
+    },
+    "typographyMeta": {
+      "display-small": { "displayName": "Literary display", "purpose": "Library introduction using bundled offline Literata." },
+      "headline-large": { "displayName": "Literary heading", "purpose": "Screen introductions and saved-word sheet heading." },
+      "headline-medium": { "displayName": "Screen and lookup heading", "purpose": "App bar titles, meanings, and weekly total." },
+      "headline-small": { "displayName": "Section heading", "purpose": "Sections, empty states, continuing-book title, and word translation." },
+      "title-medium": { "displayName": "Functional title", "purpose": "Book rows, settings groups, reader context, and result chapter." },
+      "body-medium": { "displayName": "Explanation", "purpose": "Functional explanations and contextual content." },
+      "body-small": { "displayName": "Metadata", "purpose": "Authors, provenance, and support copy." }
+    },
+    "shadows": [],
+    "motion": [],
+    "breakpoints": [ { "name": "expanded-navigation", "value": "600dp" } ]
+  },
+  "components": [
+    { "name": "Filled Button", "kind": "button", "refersTo": "button-primary-light", "description": "Native Compose Material 3 Button; switches to button-primary-dark with the theme. Used for vocabulary and configuration saves. Material owns shape, ripple, focus, enabled and disabled states. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Tonal Button", "kind": "button", "description": "Native FilledTonalButton for review and saving a highlight; framework role colors, shape and interaction states. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Outlined Button", "kind": "button", "description": "Native OutlinedButton for optional AI setup; full width in the lookup sheet. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Text Button", "kind": "button", "description": "Native TextButton for dialog decisions, lower emphasis actions, and annotation disclosure. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Outlined Field", "kind": "input", "description": "Native OutlinedTextField for search, settings, translation and notes. Search is single line; translation/notes allow up to four lines. API key uses password transformation and visibility control. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Adaptive Navigation", "kind": "nav", "description": "Native NavigationBar below 600dp and NavigationRail from 600dp; four labeled destinations. Hidden during reading. Component selection, ripple and focus stay Material defaults. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Selection and Action Chips", "kind": "chip", "description": "Native FilterChip for filters, theme and reading font; AssistChip for explicit AI actions disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Continue Reading Card", "kind": "card", "refersTo": "resume-card-light", "description": "Native clickable Card with explicit paired primary-container colors, 16dp corners, 20dp padding, 98 by 148dp cover, reading context and progress; resume-card-dark is its dark variant. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Meaning Sheet", "kind": "custom", "refersTo": "lookup-heading", "description": "Native fully expanded ModalBottomSheet; scrollable meanings, pronunciation, local/manual save, provenance, explicit optional AI and annotation disclosure. Native component: no HTML/CSS preview.", "html": "", "css": "" },
+    { "name": "Reading Surface", "kind": "custom", "description": "Isolated Android WebView with themed paper and ink; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px. Selection opens the native meaning sheet. Fixed highlight colors and error fallback are documented limitations. No fabricated web preview is supplied.", "html": "", "css": "" }
+  ],
+  "narrative": {
+    "northStar": "A quiet reading room",
+    "overview": "Lectio pairs warm paper surfaces and forest green actions with literary headings and clear functional controls. Reading and contextual understanding share one space: a selected word opens a meaning sheet, while optional AI stays behind explicit actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
+    "keyCharacteristics": [
+      "Warm light paper and a separate dark forest scheme.",
+      "Serif literary headings with sans serif functional text.",
+      "Material 3 controls, tonal containers, and native modal sheets.",
+      "Adjustable reading type and contextual meanings with visible provenance.",
+      "Four destinations that adapt from bottom navigation to a rail."
+    ],
+    "rules": [
+      { "name": "The Paired Roles Rule", "body": "Resolve UI colors through `MaterialTheme.colorScheme` and use the foreground role corresponding to its background role.", "section": "colors" },
+      { "name": "The Two Reading Voices Rule", "body": "Use the Compose type roles for app UI; allow the separate reading page to follow the reader's serif/sans, size, and line-height preferences.", "section": "typography" },
+      { "name": "The Navigation Width Rule", "body": "Use the existing compact bar / expanded rail boundary; do not copy the compact bar onto the expanded layout.", "section": "layout" }
+    ],
+    "dos": [
+      "Do use Material 3 color roles with matching foregrounds in both explicit schemes.",
+      "Do use serif headline roles and sans serif functional type through `LectioTypography`.",
+      "Do retain the compact navigation bar and expanded navigation rail behavior.",
+      "Do keep reading preferences separate from app UI typography.",
+      "Do preserve visible meaning provenance and explicit optional AI actions in the reading context.",
+      "Do use native Material controls and their built-in interaction states."
+    ],
+    "donts": [
+      "Don't treat cover colors or fixed WebView highlight colors as general app accents.",
+      "Don't promote tiny uppercase cover labels into a reusable heading pattern.",
+      "Don't describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.",
+      "Don't introduce account UI as a prerequisite to local reading or vocabulary.",
+      "Don't claim device-verified font scaling, contrast, insets, or responsive coverage from this source scan alone."
+    ]
+  }
+}

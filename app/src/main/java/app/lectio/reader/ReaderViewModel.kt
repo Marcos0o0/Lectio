@@ -1,0 +1,94 @@
+package app.lectio.reader
+
+import android.app.Application
+import android.net.Uri
+import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import app.lectio.reader.data.*
+import app.lectio.reader.data.Annotation
+import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.*
+
+data class ReaderState(
+    val loading: Boolean = true, val importing: Boolean = false,
+    val books: List<Book> = emptyList(), val words: List<Word> = emptyList(),
+    val annotations: List<Annotation> = emptyList(), val sessions: Map<String,Int> = emptyMap(),
+    val preferences: Preferences = Preferences(), val current: Book? = null,
+    val navigationId: Int = 0, val fragment: String? = null,
+    val selection: Selection? = null, val lookup: Lookup? = null,
+    val lookupLoading: Boolean = false, val lookupError: String? = null, val dictionarySize: Int = 0
+)
+
+class ReaderViewModel(application: Application) : AndroidViewModel(application) {
+    private val repo=ReaderRepository(application)
+    private val mutable=MutableStateFlow(ReaderState())
+    val state=mutable.asStateFlow()
+    private val messages=Channel<String>(Channel.BUFFERED)
+    val events=messages.receiveAsFlow()
+    private var lookupJob: Job? = null
+    private val progressWrites=Channel<Book>(Channel.UNLIMITED)
+    init { viewModelScope.launch(Dispatchers.IO) { for(book in progressWrites) repo.db.save(book) } }
+    init { viewModelScope.launch {
+        try { withContext(Dispatchers.IO) { repo.initialize(); refresh() } }
+        catch(e: Exception) { message("No se pudo cargar la biblioteca: ${e.message}"); mutable.update { it.copy(loading=false) } }
+    } }
+    private fun refresh() { val books=repo.db.books();val words=repo.db.words();val sessions=repo.db.reading();val prefs=repo.settings.load(); mutable.update { it.copy(loading=false,books=books,words=words,sessions=sessions,preferences=prefs,dictionarySize=repo.dictionary.size) } }
+    fun message(text: String) { messages.trySend(text) }
+    fun importBook(uri: Uri) { viewModelScope.launch {
+        mutable.update { it.copy(importing=true) }
+        try { withContext(Dispatchers.IO) { repo.import(uri);refresh() }; message("Libro añadido a tu biblioteca") }
+        catch(e: Exception) { message(e.message ?: "No se pudo importar. Verifica que sea un EPUB sin DRM.") }
+        finally { mutable.update { it.copy(importing=false) } }
+    } }
+    fun open(book: Book) { lookupJob?.cancel(); mutable.update { it.copy(current=book,selection=null,lookup=null,fragment=null,navigationId=it.navigationId+1) }; viewModelScope.launch(Dispatchers.IO) {
+        val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it }
+    }; progress(book.chapter,book.position) }
+    fun closeBook() { dismissSelection(); mutable.update { it.copy(current=null) } }
+    fun progress(chapter: Int, position: Float) {
+        val book=mutable.value.current ?: return
+        val updated=book.copy(chapter=chapter.coerceIn(book.chapters.indices),position=position.coerceIn(0f,1f),lastRead=System.currentTimeMillis())
+        mutable.update { it.copy(current=updated,books=it.books.map { b -> if(b.id==updated.id) updated else b }) }
+        progressWrites.trySend(updated)
+    }
+    fun readerProgress(bookId: String, chapter: Int, position: Float) { val current=mutable.value.current ?: return; if(current.id==bookId&&current.chapter==chapter) progress(chapter,position) }
+    fun chapter(index: Int, position: Float = 0f, fragment: String? = null) { dismissSelection(); progress(index,position);mutable.update { it.copy(navigationId=it.navigationId+1,fragment=fragment) } }
+    fun navigationConsumed() {mutable.update {it.copy(fragment=null)}}
+    fun remove(book: Book) { viewModelScope.launch(Dispatchers.IO) { repo.remove(book);refresh() }; message("Libro eliminado del dispositivo") }
+    fun preferences(p: Preferences) { viewModelScope.launch { try { withContext(Dispatchers.IO) { repo.settings.save(p) };mutable.update { it.copy(preferences=p) } } catch(e:Exception) { message("No se pudo guardar la configuración: ${e.message}") } } }
+    fun select(selection: Selection) { if(selection.text.isBlank()) return; lookupJob?.cancel(); mutable.update { it.copy(selection=selection,lookup=null,lookupError=null,lookupLoading=true) }; query("translate",false) }
+    fun query(action: String, useAi: Boolean = true) {
+        val selection=mutable.value.selection ?: return
+        lookupJob?.cancel()
+        lookupJob=viewModelScope.launch {
+            mutable.update { it.copy(lookupLoading=true,lookupError=null,lookup=null) }
+            try {
+                val result=withContext(Dispatchers.IO) { repo.lookup(selection,action,mutable.value.preferences,useAi) }
+                ensureActive(); mutable.update { it.copy(lookup=result,lookupLoading=false) }
+            } catch(e: CancellationException) { throw e }
+            catch(e:Exception) { mutable.update { it.copy(lookupError=if(e is java.io.IOException) "No se pudo conectar. Revisa tu conexión e intenta de nuevo." else e.message ?: "No se pudo consultar el fragmento.",lookupLoading=false) } }
+        }
+    }
+    fun dismissSelection() { lookupJob?.cancel(); mutable.update { it.copy(selection=null,lookup=null,lookupLoading=false,lookupError=null) } }
+    fun saveWord(manual: String? = null) {
+        val s=mutable.value;val selection=s.selection ?: return; val lookup=s.lookup
+        if(selection.text.trim().split(Regex("\\s+")).size>12) { message("Para tu vocabulario, selecciona una palabra o expresión corta.");return }
+        val translation=manual?.trim()?.takeIf { it.isNotEmpty() } ?: lookup?.translation ?: return
+        val existing=s.words.firstOrNull {it.text.equals(selection.text.trim(),true)}
+        val word=Word(selection.text.trim(),translation,lookup?.definition.orEmpty(),lookup?.example.orEmpty(),lookup?.synonyms.orEmpty(),lookup?.level.orEmpty(),s.current?.title.orEmpty(),selection.context,learned=existing?.learned ?: false,due=existing?.due ?: 0,interval=existing?.interval ?: 0,source=if(manual!=null) "Traducción propia" else lookup?.source.orEmpty())
+        viewModelScope.launch(Dispatchers.IO) { repo.db.save(word); refresh() };message("Guardado en tu vocabulario")
+    }
+    fun learn(word: Word, correct: Boolean) { viewModelScope.launch(Dispatchers.IO) {
+        val days=if(!correct) 0 else when(word.interval) { 0->1;1->3;else->(word.interval*2).coerceAtMost(180) }
+        repo.db.save(word.copy(interval=days,due=System.currentTimeMillis()+if(correct) days*86400000L else 600000L,learned=days>=7));refresh()
+    } }
+    fun toggleLearned(word: Word) { viewModelScope.launch(Dispatchers.IO) { repo.db.save(word.copy(learned=!word.learned));refresh() } }
+    fun deleteWord(word: Word) { viewModelScope.launch(Dispatchers.IO) { repo.db.deleteWord(word.text);refresh() } }
+    fun annotate(text: String = "", note: String = "", type: String = "bookmark") {
+        val book=mutable.value.current ?: return
+        viewModelScope.launch(Dispatchers.IO) { repo.db.annotate(book.id,book.chapter,book.position,text,note,type); val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it } }
+        message(if(type=="bookmark") "Marcador guardado" else "Subrayado guardado")
+    }
+    fun deleteAnnotation(id: Long) { val book=mutable.value.current ?: return; viewModelScope.launch(Dispatchers.IO) { repo.db.deleteAnnotation(id); val annotations=repo.db.annotations(book.id);mutable.update { it.copy(annotations=annotations) } } }
+    fun readingTick(seconds: Int) { viewModelScope.launch(Dispatchers.IO) { repo.db.addReading(seconds);val sessions=repo.db.reading();mutable.update { it.copy(sessions=sessions) } } }
+}
