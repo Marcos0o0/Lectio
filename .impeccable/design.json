@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T05:18:25Z",
+  "generatedAt": "2026-10-16T15:46:38Z",
   "title": "Design System: Lectio",
   "extensions": {
     "colorMeta": {
@@ -64,11 +64,11 @@
     "typographyMeta": {
       "display-small": {
         "displayName": "Literary display",
-        "purpose": "Library introduction using bundled offline Literata."
+        "purpose": "Retained theme role using bundled offline Literata; no longer used for the library introduction."
       },
       "headline-large": {
         "displayName": "Literary heading",
-        "purpose": "Screen introductions and saved-word sheet heading."
+        "purpose": "Library question, vocabulary and activity introductions, and saved-word sheet heading."
       },
       "headline-medium": {
         "displayName": "Screen and lookup heading",
@@ -105,7 +105,7 @@
       "name": "Filled Button",
       "kind": "button",
       "refersTo": "button-primary-light",
-      "description": "Native Compose Material 3 Button; switches to button-primary-dark with the theme. Used for vocabulary and configuration saves. Material owns shape, ripple, focus, enabled and disabled states. Native component: no HTML/CSS preview.",
+      "description": "Native Compose Material 3 Button; switches to button-primary-dark with the theme. Used for language download, vocabulary save, and optional connection save. Material owns shape, ripple, focus, enabled and disabled states. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -119,7 +119,7 @@
     {
       "name": "Outlined Button",
       "kind": "button",
-      "description": "Native OutlinedButton for optional AI setup; full width in the lookup sheet. Native component: no HTML/CSS preview.",
+      "description": "Native OutlinedButton for optional Gemini connection and its inline form disclosure, translation retry, and personal translation save. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -133,7 +133,7 @@
     {
       "name": "Outlined Field",
       "kind": "input",
-      "description": "Native OutlinedTextField for search, settings, translation and notes. Search is single line; translation/notes allow up to four lines. API key uses password transformation and visibility control. Native component: no HTML/CSS preview.",
+      "description": "Native OutlinedTextField for search, optional connection, personal translation, and notes. Search is single line; translation/notes allow up to four lines. The encrypted personal key uses password transformation and visibility control; provider, model, and endpoint stay under advanced disclosure. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -147,7 +147,7 @@
     {
       "name": "Selection and Action Chips",
       "kind": "chip",
-      "description": "Native FilterChip for filters, theme and reading font; AssistChip for explicit AI actions disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
+      "description": "Native FilterChip for filters, theme and reading font; AssistChip for explicit Gemini explanation, grammar, and simpler-English actions, disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -163,32 +163,32 @@
       "name": "Meaning Sheet",
       "kind": "custom",
       "refersTo": "lookup-heading",
-      "description": "Native fully expanded ModalBottomSheet; scrollable meanings, pronunciation, local/manual save, provenance, explicit optional AI and annotation disclosure. Native component: no HTML/CSS preview.",
+      "description": "Native fully expanded, scrollable ModalBottomSheet opened by word tap or text selection. Shows translation and translated sentence, pronunciation, official Google Translate attribution for local results, one-time Wi-Fi/mobile-data download choices, progress/errors/retry, vocabulary save up to 12 words, and disclosed optional Gemini actions with provenance. Annotation disclosure contains notes, highlighting, and personal translation when no result exists. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Reading Surface",
       "kind": "custom",
-      "description": "Isolated Android WebView with theme background and foreground; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px. Selection opens the native meaning sheet and uses primary-container paired roles; saved highlights use secondary-container paired roles. Blockquotes use surface-container, dividers use outline-variant, and the error fallback uses current page colors. Native component: no fabricated HTML/CSS preview.",
+      "description": "Isolated Android WebView with theme background and foreground; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px. Word taps and long press feed the native translation sheet; native selection adds Traducir as a fallback. Selection uses primary-container paired roles; saved highlights use secondary-container paired roles. Blockquotes use surface-container, dividers use outline-variant, and the error fallback uses current page colors. h2 uses flow-root, 1em top padding, and .7em bottom margin to prevent paragraph margin collapse. Native component: no fabricated HTML/CSS preview.",
       "html": "",
       "css": ""
     }
   ],
   "narrative": {
     "northStar": "A quiet reading room",
-    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: a selected word opens a meaning sheet, while optional AI stays behind explicit actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
+    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word or selecting text opens its translation and translated sentence in a native sheet. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
     "keyCharacteristics": [
       "Modern graphite dark surfaces, slate containers, soft blue actions, and a cool light scheme.",
       "Serif literary headings with sans serif functional text.",
       "Material 3 controls, tonal containers, and native modal sheets.",
-      "Adjustable reading type and contextual meanings with visible provenance.",
+      "Adjustable reading type and local translations with visible provenance.",
       "Four destinations that adapt from bottom navigation to a rail."
     ],
     "rules": [
       {
         "name": "The Paired Roles Rule",
-        "body": "Resolve UI colors through `MaterialTheme.colorScheme` and use the foreground role corresponding to its background role.",
+        "body": "Resolve UI colors through MaterialTheme.colorScheme and use the foreground role corresponding to its background role.",
         "section": "colors"
       },
       {
@@ -207,7 +207,7 @@
       "Do use serif headline roles and sans serif functional type through `LectioTypography`.",
       "Do retain the compact navigation bar and expanded navigation rail behavior.",
       "Do keep reading preferences separate from app UI typography.",
-      "Do preserve visible meaning provenance and explicit optional AI actions in the reading context.",
+      "Do preserve visible translation provenance, one-time download choices, and explicit optional explanation actions in the reading context.",
       "Do use native Material controls and their built-in interaction states."
     ],
     "donts": [
@@ -215,7 +215,7 @@
       "Don't promote tiny uppercase cover labels into a reusable heading pattern.",
       "Don't describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.",
       "Don't introduce account UI as a prerequisite to local reading or vocabulary.",
-      "Don't present Android 15 emulator captures or DOM selection tests as physical-phone gesture, TTS, or performance verification."
+      "Don't present Android 15 emulator touch/long-press or DOM phrase-selection tests as physical-phone, selection-handle, TalkBack, live Gemini, TTS, or performance verification."
     ]
   }
 }

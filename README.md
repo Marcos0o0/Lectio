@@ -27,7 +27,7 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 - Importar EPUB sin DRM mediante el selector de archivos de Android. El libro se copia al almacenamiento privado: no depende del archivo original.
 - Continuar la lectura con progreso por capítulo y posición guardados.
 - Navegar con el índice, buscar palabras o frases y crear marcadores.
-- Seleccionar texto para consultar el diccionario inglés-español inicial o una respuesta en caché, sin conexión.
+- Tocar una palabra o mantener pulsado para seleccionar una frase y abrir su traducción en una ficha inferior. La ficha incluye la oración de contexto traducida cuando corresponde.
 - Guardar vocabulario, añadir una traducción propia y escuchar el texto con la voz inglesa de Android.
 - Guardar subrayados y notas, y volver a ellos desde las anotaciones del libro.
 - Repasar palabras con flashcards e intervalos de 1, 3, 6, 12… días. Una respuesta fallida vuelve en 10 minutos; desde 7 días se marca como aprendida.
@@ -38,11 +38,15 @@ La apariencia inicial es oscura, con superficies grafito y acentos azules. Si ya
 
 Al abrir se incluye **A Little More Slowly**, una lectura de muestra original de Lectio, con tres capítulos en inglés. Las portadas tipográficas de reserva representan el título; no son portadas editoriales originales.
 
-## IA opcional
+## Traducción y explicaciones
 
-La app no incluye una clave ni realiza consultas automáticas de pago. En **Ajustes** introduce una URL base HTTPS compatible con `/chat/completions`, el nombre de un modelo disponible en tu proveedor y tu clave. El ejemplo configurado es `https://api.openai.com/v1` y `gpt-4.1-mini`; puedes cambiarlos.
+La traducción usa **Google Translate mediante Google ML Kit en el dispositivo**, no una lista de significados escrita en el código. La primera consulta ofrece descargar español (alrededor de 30 MB) por Wi-Fi o, si lo eliges, datos móviles. Después traduce palabras y frases sin conexión, sin clave y sin cobros por consulta. [Documentación de traducción](https://developers.google.com/ml-kit/language/translation), [Google Translate](https://cloud.google.com/translate).
 
-Seleccionar texto consulta primero los datos locales. **Traducir con IA**, **Explicar**, **Inglés sencillo** y **Gramática** solicitan una respuesta al proveedor configurado. Se envían el fragmento y hasta 3.000 caracteres de contexto; el proveedor puede cobrar por ello. Las respuestas se identifican como IA y se guardan en caché por texto, contexto, acción, modelo y proveedor. La clave se cifra con AES-GCM y una clave de Android Keystore; no se guarda en código ni se copia con backups del sistema.
+**Gemini es opcional** para significado contextual, gramática e inglés sencillo. En Ajustes → Conectar Gemini se pega una clave personal de Google AI Studio una sola vez. No se pide URL ni modelo en el flujo normal. El modelo inicial es `gemini-3.5-flash-lite`; las opciones avanzadas permiten cambiarlo o usar un proveedor compatible con chat completions. No hay una clave del desarrollador dentro del APK.
+
+Solo al pulsar una explicación se envían la selección y hasta 1.200 caracteres de contexto a Gemini. Las respuestas se limitan a 800 tokens de salida y se guardan en caché por texto, contexto, acción, modelo y proveedor; no hay reintentos automáticos de pago. El proveedor puede cobrar. La clave personal se cifra con AES-GCM y Android Keystore, fuera del código y de backups. Para ofrecer IA a terceros con una cuenta común se necesitaría un backend con autenticación y límites; no se debe incrustar esa clave en el APK.
+
+Referencia de coste consultada el 16 de octubre de 2026: Gemini 3.5 Flash-Lite, USD 0,30 por millón de tokens de entrada y USD 2,50 de salida. Un ejemplo de 1.000 consultas de 600 tokens de entrada y 300 de salida cuesta aproximadamente USD 0,93, antes de impuestos y tokens adicionales de razonamiento. No es una garantía del número de consultas que cubra un saldo en CLP. [Precios](https://ai.google.dev/gemini-api/docs/pricing).
 
 La pronunciación utiliza Android TextToSpeech. Una voz descargada permite uso offline; la disponibilidad y el uso de red dependen del motor de voz del dispositivo.
 
@@ -53,7 +57,7 @@ Es un **MVP**, no un lector EPUB certificado. Admite contenido EPUB 2/3 reflowab
 - No soporta DRM, maquetación fija, audio, vídeo, JavaScript editorial, SVG ni formatos PDF/MOBI/CBZ.
 - Reinterpreta los estilos del libro para aplicar las preferencias de lectura; no conserva toda la maquetación editorial.
 - Los enlaces del índice a secciones se agrupan por capítulo; no se reproduce cada nivel de navegación del EPUB.
-- El diccionario es una selección inicial redactada para el proyecto, no un diccionario general completo. El nivel CEFR es orientativo. Las palabras faltantes permiten traducción manual o consulta opcional a IA.
+- La traducción local ofrece traducciones automáticas, no definiciones de un diccionario editorial ni explicaciones contextuales completas. Gemini puede ampliar el significado cuando se configura; sus respuestas pueden contener errores.
 - Los subrayados se restauran buscando la primera coincidencia exacta del texto en su capítulo. Frases idénticas repetidas y selecciones que cruzan párrafos requieren anclajes más precisos en una versión posterior.
 - El progreso es aproximado por capítulo y desplazamiento, no por número de páginas editoriales.
 - La búsqueda muestra hasta cinco coincidencias por capítulo, con un máximo de 100 resultados.
@@ -74,10 +78,11 @@ app/src/main/java/app/lectio/reader/
     ReaderRepository.kt    Importación y resolución local/IA
     LibraryDb.kt           SQLite: libros, palabras, notas, caché y sesiones
     SettingsStore.kt       Preferencias y clave cifrada
-    AiClient.kt            API opcional por HTTPS
+    LocalTranslation.kt    Modelos inglés-español de Google ML Kit
+    AiClient.kt            Proveedores de explicaciones por HTTPS
+    GeminiClient.kt        Conexión personal con Gemini
     DemoBook.kt            EPUB original de muestra
   ui/                      Pantallas, tema y lector aislado
-app/src/main/assets/dictionary.json
 app/src/test/               Pruebas del parser, datos y flujos de interfaz
 app/src/androidTest/        Regresión nativa del lector con Chromium real
 ```
@@ -88,7 +93,7 @@ Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no
 
 Resultados, capturas y pasos pendientes en dispositivo: [VALIDATION.md](VALIDATION.md).
 
-Las 14 pruebas JVM cubren el parser, recursos WebView, persistencia y navegación Compose. Dos pruebas instrumentadas ejecutadas en Android 15 comprueban capítulos reales en Chromium, selección mediante DOM y consulta nativa, reapertura y temas. Las capturas actuales del emulador y los límites de esta cobertura están en VALIDATION.md.
+Las 17 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia y navegación Compose. Dos pruebas instrumentadas en Android 15 comprueban pulsación prolongada y toque reales, traducción con el modelo local, frases mediante rango DOM, capítulos en Chromium, reapertura, temas y configuración de Gemini. Las capturas actuales del emulador y los límites de esta cobertura están en VALIDATION.md.
 
 Quedan por validar en hardware: selección mediante gestos dentro del WebView, motor TTS, selector de archivos de cada fabricante, restauración tras terminar el proceso y rendimiento con libros grandes. El código está disponible en GitHub; la app aún no se ha publicado en una tienda.
 

@@ -38,8 +38,7 @@ import app.lectio.reader.data.Book
             if(search) item { OutlinedTextField(value=query,onValueChange={query=it},Modifier.fillMaxWidth(),placeholder={Text("Título o autor")},leadingIcon={Icon(Icons.Outlined.Search,null)},singleLine=true) }
             item {
                 Column(Modifier.padding(top=12.dp,bottom=12.dp)) {
-                    Text("Un libro.\nOtro mundo.",style=MaterialTheme.typography.displaySmall)
-                    Spacer(Modifier.height(12.dp));Text("Lee a tu ritmo. Entiende cada palabra.",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text("¿Qué te gustaría leer?",style=MaterialTheme.typography.headlineLarge)
                 }
             }
             if(current!=null && query.isBlank() && filter==0) item {
@@ -47,7 +46,7 @@ import app.lectio.reader.data.Book
                     Row(Modifier.fillMaxWidth().padding(20.dp),horizontalArrangement=Arrangement.spacedBy(20.dp),verticalAlignment=Alignment.CenterVertically) {
                         BookCover(current,Modifier.width(98.dp).height(148.dp),compact=true)
                         Column(Modifier.weight(1f)) {
-                            Text(if(current.lastRead==0L) "Tu próxima lectura" else "Sigue donde lo dejaste",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onPrimaryContainer)
+                            Text(if(current.lastRead==0L) "Por empezar" else "Continuar leyendo",style=MaterialTheme.typography.labelLarge,color=MaterialTheme.colorScheme.onPrimaryContainer)
                             Spacer(Modifier.height(10.dp));Text(current.title,style=MaterialTheme.typography.headlineSmall,color=MaterialTheme.colorScheme.onPrimaryContainer,maxLines=3,overflow=TextOverflow.Ellipsis)
                             Spacer(Modifier.height(10.dp));Text(if(current.demo) "Lectura de muestra · en inglés" else current.author,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onPrimaryContainer,maxLines=2,overflow=TextOverflow.Ellipsis)
                             Spacer(Modifier.height(16.dp))
@@ -64,7 +63,7 @@ import app.lectio.reader.data.Book
                     listOf("Todos","Leyendo","Terminados").forEachIndexed { i,label -> FilterChip(selected=filter==i,onClick={filter=i},label={Text(label)}) }
                 }
             }
-            if(books.isEmpty()) item { EmptyState(Icons.Outlined.AutoStories,if(query.isNotEmpty()) "Sin coincidencias" else "Hay historias por descubrir",if(query.isNotEmpty()) "Prueba con otro título o autor." else if(filter==0) "Importa un archivo EPUB para empezar. Tus libros se guardan en este dispositivo." else "Aquí aparecerán los libros de esta categoría.",if(filter==0&&query.isEmpty()) "Importar EPUB" else null,importBook) }
+            if(books.isEmpty()) item { EmptyState(Icons.Outlined.AutoStories,if(query.isNotEmpty()) "Sin coincidencias" else "Tu biblioteca está vacía",if(query.isNotEmpty()) "Prueba con otro título o autor." else if(filter==0) "Importa un archivo EPUB para empezar. Tus libros se guardan en este dispositivo." else "Aquí aparecerán los libros de esta categoría.",if(filter==0&&query.isEmpty()) "Importar EPUB" else null,importBook) }
             items(books,key={it.id}) { book ->
                 Row(Modifier.fillMaxWidth().clickable {open(book)}.padding(vertical=4.dp),horizontalArrangement=Arrangement.spacedBy(18.dp),verticalAlignment=Alignment.CenterVertically) {
                     BookCover(book,Modifier.width(72.dp).height(108.dp),compact=true)
@@ -81,7 +80,6 @@ import app.lectio.reader.data.Book
                     } }
                 }
             }
-            if(state.books.any {it.demo} && query.isEmpty()) item { Text("Incluye una lectura de muestra original de Lectio. Importa tus propios libros cuando quieras.",Modifier.padding(top=12.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant) }
         }
     }
     delete?.let { book -> AlertDialog(onDismissRequest={delete=null},title={Text("¿Eliminar este libro?")},text={Text("Se borrarán «${book.title}», su progreso y sus anotaciones de Lectio. El archivo original y tu vocabulario se conservarán.")},confirmButton={TextButton(onClick={remove(book);delete=null}) {Text("Eliminar")}},dismissButton={TextButton(onClick={delete=null}) {Text("Cancelar")}}) }

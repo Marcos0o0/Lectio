@@ -61,7 +61,7 @@ import java.io.File
         } }},contentWindowInsets=WindowInsets(0,0,0,0)
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if(book.demo&&book.chapter==0) Text("Mantén pulsada una palabra para descubrir su significado.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=10.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.primary)
+            Text("Toca una palabra para traducir. Mantén pulsado para seleccionar una frase.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             key(book.id,book.chapter) {
                 ReaderWebView(book,state.preferences,MaterialTheme.colorScheme.background,MaterialTheme.colorScheme.onBackground,state.annotations,searchTerm,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{vm.readerProgress(book.id,book.chapter,it)},{index,anchor->vm.chapter(index,fragment=anchor)},vm::navigationConsumed)
             }
@@ -70,7 +70,7 @@ import java.io.File
     when(panel) {
         "type" -> ModalBottomSheet(onDismissRequest={panel=null}) {
             Column(Modifier.fillMaxWidth().padding(horizontal=24.dp).padding(bottom=32.dp)) {
-                Text("Tu página, a tu ritmo",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(20.dp))
+                Text("Apariencia de lectura",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(20.dp))
                 Row(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Sistema","Claro","Oscuro").forEach { FilterChip(selected=state.preferences.theme==it,onClick={vm.preferences(state.preferences.copy(theme=it))},label={Text(it)}) }}
                 ReadingPreferences(state.preferences,vm::preferences)
             }
@@ -83,7 +83,7 @@ import java.io.File
                 if(tab==0) itemsIndexed(book.chapters) { i,chapter ->
                     ListItem(modifier=Modifier.clickable {vm.chapter(i);panel=null},headlineContent={Text(chapter.title)},leadingContent={Text("${i+1}",color=MaterialTheme.colorScheme.primary)},trailingContent={if(i==book.chapter) Icon(Icons.Outlined.MenuBook,"Capítulo actual",tint=MaterialTheme.colorScheme.primary)})
                 } else {
-                    if(state.annotations.isEmpty()) item {EmptyState(Icons.Outlined.BookmarkBorder,"Guarda una idea","Usa el marcador para guardar tu lugar, o selecciona un fragmento para subrayarlo y añadir una nota.")}
+                    if(state.annotations.isEmpty()) item {EmptyState(Icons.Outlined.BookmarkBorder,"Aún no hay anotaciones","Usa el marcador para guardar tu lugar, o selecciona un fragmento para subrayarlo y añadir una nota.")}
                     itemsIndexed(state.annotations) { _,annotation -> ListItem(modifier=Modifier.clickable {vm.chapter(annotation.chapter,annotation.position);panel=null},headlineContent={Text(annotation.text.ifBlank {"Marcador"},maxLines=3,overflow=TextOverflow.Ellipsis)},supportingContent={Text("Capítulo ${annotation.chapter+1}${if(annotation.note.isNotBlank()) " · ${annotation.note}" else ""}")},leadingContent={Icon(if(annotation.type=="highlight") Icons.Outlined.BorderColor else Icons.Outlined.BookmarkBorder,null)},trailingContent={IconButton(onClick={vm.deleteAnnotation(annotation.id)}) {Icon(Icons.Outlined.DeleteOutline,"Eliminar anotación")}}) }
                 }
             }
@@ -108,7 +108,7 @@ import java.io.File
                 } else searching=false
             }
             Column(Modifier.fillMaxWidth().padding(horizontal=24.dp)) {
-                Text("Entre las páginas",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(16.dp))
+                Text("Buscar en el libro",style=MaterialTheme.typography.headlineSmall);Spacer(Modifier.height(16.dp))
                 OutlinedTextField(query,{query=it},Modifier.fillMaxWidth(),label={Text("Buscar palabra o frase")},singleLine=true,leadingIcon={Icon(Icons.Outlined.Search,null)})
                 Spacer(Modifier.height(12.dp));Text(if(searching) "Buscando en el libro…" else if(query.length<2) "Escribe al menos dos caracteres." else "${matches.size} resultados${if(matches.size>=100) " (primeros 100)" else ""}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             }

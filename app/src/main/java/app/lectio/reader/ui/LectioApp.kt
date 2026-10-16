@@ -44,7 +44,7 @@ import app.lectio.reader.ReaderViewModel
                         0 -> LibraryScreen(state,vm::open,importBook,vm::remove,snackbars)
                         1 -> VocabularyScreen(state.words,pronounce,vm::toggleLearned,vm::deleteWord,vm::learn)
                         2 -> ActivityScreen(state)
-                        3 -> SettingsScreen(state.preferences,state.dictionarySize,vm::preferences)
+                        3 -> SettingsScreen(state.preferences,state.translationReady,state.translationDownloading,vm::preferences,vm::downloadTranslation)
                     }
                 }
             }

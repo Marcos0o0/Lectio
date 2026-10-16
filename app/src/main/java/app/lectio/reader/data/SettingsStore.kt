@@ -31,8 +31,13 @@ class SettingsStore(context: Context) {
             String(cipher.doFinal(bytes.copyOfRange(12,bytes.size)),Charsets.UTF_8)
         }
     }.getOrDefault("")
-    fun load() = Preferences(prefs.getString("theme", "Oscuro")!!, prefs.getInt("fontSize",20), prefs.getFloat("lineHeight",1.8f),prefs.getBoolean("serif",true),prefs.getString("endpoint","https://api.openai.com/v1")!!,prefs.getString("model","gpt-4.1-mini")!!,decrypt(prefs.getString("key","")!!))
-    fun save(p: Preferences) { prefs.edit().putString("theme",p.theme).putInt("fontSize",p.fontSize).putFloat("lineHeight",p.lineHeight).putBoolean("serif",p.serif).putString("endpoint",p.endpoint.trim().trimEnd('/')).putString("model",p.model.trim()).putString("key",encrypt(p.key.trim())).apply() }
+    fun load(): Preferences {
+        val defaults=Preferences()
+        val endpoint=prefs.getString("endpoint",defaults.endpoint)!!
+        val provider=prefs.getString("provider",if(endpoint.contains("generativelanguage.googleapis.com")) "gemini" else "compatible")!!
+        return Preferences(prefs.getString("theme", "Oscuro")!!,prefs.getInt("fontSize",20),prefs.getFloat("lineHeight",1.8f),prefs.getBoolean("serif",true),endpoint,prefs.getString("model",defaults.model)!!,decrypt(prefs.getString("key","")!!),provider)
+    }
+    fun save(p: Preferences) { prefs.edit().putString("theme",p.theme).putInt("fontSize",p.fontSize).putFloat("lineHeight",p.lineHeight).putBoolean("serif",p.serif).putString("endpoint",p.endpoint.trim().trimEnd('/')).putString("model",p.model.trim()).putString("key",encrypt(p.key.trim())).putString("provider",p.provider).apply() }
     var seeded: Boolean
         get() = prefs.getBoolean("seeded",false)
         set(value) { prefs.edit().putBoolean("seeded",value).apply() }

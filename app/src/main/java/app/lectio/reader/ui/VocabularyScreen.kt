@@ -24,7 +24,6 @@ import app.lectio.reader.data.Word
     val filtered=words.filter { (it.text.contains(query,true)||it.translation.contains(query,true)) && when(filter) {1->!it.learned;2->it.learned;else->true} }
     Scaffold(topBar={TopAppBar(title={Text("Vocabulario",style=MaterialTheme.typography.headlineMedium)})},contentWindowInsets=WindowInsets(0,0,0,0)) { padding ->
         LazyColumn(Modifier.fillMaxSize().padding(padding),contentPadding=PaddingValues(24.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
-            item { Text("Las palabras que\nahora son tuyas.",style=MaterialTheme.typography.headlineLarge);Spacer(Modifier.height(12.dp));Text("Guarda lo que descubres. Recuérdalo a tu ritmo.",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant) }
             if(words.isNotEmpty()) item {
                 Surface(color=MaterialTheme.colorScheme.secondaryContainer,shape=MaterialTheme.shapes.large) { Row(Modifier.fillMaxWidth().padding(20.dp),verticalAlignment=Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) { Text("${due.size} ${if(due.size==1) "palabra para hoy" else "palabras para hoy"}",style=MaterialTheme.typography.titleMedium);Text("Repaso espaciado",style=MaterialTheme.typography.bodySmall) }
@@ -34,7 +33,7 @@ import app.lectio.reader.data.Word
             item { OutlinedTextField(value=query,onValueChange={query=it},Modifier.fillMaxWidth(),placeholder={Text("Buscar en tu vocabulario")},singleLine=true,leadingIcon={Icon(Icons.Outlined.Search,null)})
                 FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) { listOf("Todas","Aprendiendo","Aprendidas").forEachIndexed { i,label -> FilterChip(selected=filter==i,onClick={filter=i},label={Text(label)}) } }
             }
-            if(filtered.isEmpty()) item { EmptyState(Icons.Outlined.Bookmarks,if(words.isEmpty()) "Una palabra es un comienzo" else "No hay palabras aquí",if(words.isEmpty()) "Selecciona una palabra mientras lees y toca Guardar. También puedes añadir tu propia traducción." else "Cambia el filtro o prueba otra búsqueda.") }
+            if(filtered.isEmpty()) item { EmptyState(Icons.Outlined.Bookmarks,if(words.isEmpty()) "Aún no hay palabras guardadas" else "Sin resultados",if(words.isEmpty()) "Toca una palabra en el libro y elige Guardar en vocabulario." else "Cambia el filtro o prueba otra búsqueda.") }
             items(filtered,key={it.text}) { word ->
                 ListItem(modifier=Modifier.clickable {selected=word},headlineContent={Text(word.text,style=MaterialTheme.typography.titleLarge)},supportingContent={Column {Text(word.translation,maxLines=2);if(word.book.isNotBlank()) Text(word.book,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1)}},trailingContent={IconButton(onClick={pronounce(word.text)}) {Icon(Icons.Outlined.VolumeUp,"Pronunciar ${word.text}")}},colors=ListItemDefaults.colors(containerColor=MaterialTheme.colorScheme.background))
                 HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
@@ -65,7 +64,7 @@ import app.lectio.reader.data.Word
     val word=queue.getOrNull(index)
     AlertDialog(onDismissRequest=onClose,icon={Icon(Icons.Outlined.Style,null)},title={Text(if(word==null) "Repaso completado" else "${index+1} de ${queue.size}")},text={
         Column(verticalArrangement=Arrangement.spacedBy(16.dp)) {
-            if(word==null) Text("Un poco cada día hace la diferencia. Las palabras volverán cuando toque repasarlas.")
+            if(word==null) Text("Has terminado las palabras pendientes de hoy.")
             else {
                 Row(verticalAlignment=Alignment.CenterVertically) {Text(word.text,Modifier.weight(1f),style=MaterialTheme.typography.headlineLarge);IconButton(onClick={pronounce(word.text)}) {Icon(Icons.Outlined.VolumeUp,"Pronunciar")}}
                 if(revealed) {Text(word.translation,style=MaterialTheme.typography.titleLarge);if(word.example.isNotBlank()) Text(word.example)} else Text("¿Recuerdas su significado?",color=MaterialTheme.colorScheme.onSurfaceVariant)

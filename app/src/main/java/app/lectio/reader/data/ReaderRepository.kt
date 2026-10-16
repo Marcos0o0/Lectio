@@ -8,7 +8,7 @@ import java.security.MessageDigest
 class ReaderRepository(private val context: Context) {
     val db = LibraryDb(context)
     val settings = SettingsStore(context)
-    val dictionary by lazy { Dictionary(context) }
+    val translation by lazy { LocalTranslation() }
     private val directory = File(context.filesDir,"books").apply { mkdirs() }
 
     fun initialize() {
@@ -16,7 +16,6 @@ class ReaderRepository(private val context: Context) {
             db.save(DemoBook.create(directory))
             settings.seeded = true
         }
-        dictionary.size
     }
     fun import(uri: Uri): Book {
         val temporary=File.createTempFile("import-", ".epub", directory)
@@ -35,14 +34,9 @@ class ReaderRepository(private val context: Context) {
         } finally { temporary.delete() }
     }
     fun remove(book: Book) { db.deleteBook(book.id); File(book.file).delete() }
-    fun lookup(selection: Selection, action: String, p: Preferences, useAi: Boolean): Lookup {
-        if (action=="translate" && !useAi) dictionary.find(selection.text)?.let { return it }
-        if (action=="translate" && !useAi) db.words().firstOrNull { it.text.equals(selection.text.trim(),true) }?.let {
-            return Lookup(selection.text,it.translation,it.definition,it.example,it.synonyms,it.level,it.source,true)
-        }
-        val cacheKey=AiClient.cacheKey(selection,action,p)
+    suspend fun lookup(selection: Selection, action: String, p: Preferences, useAi: Boolean): Lookup {
+        val cacheKey=AiClient.cacheKey(selection,if(useAi) action else "local-translate-v1",if(useAi) p else Preferences(endpoint="local",model="en-es"))
         db.cached(cacheKey)?.let { return it }
-        if(!useAi) error("No está en el diccionario inicial. Puedes consultar la IA con tu clave, o guardar una traducción propia.")
-        return AiClient.lookup(selection,action,p).also { db.cache(cacheKey,it) }
+        return (if(useAi) AiClient.lookup(selection,action,p) else translation.lookup(selection)).also { db.cache(cacheKey,it) }
     }
 }

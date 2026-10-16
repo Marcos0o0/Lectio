@@ -20,7 +20,8 @@ data class Annotation(val id: Long, val bookId: String, val chapter: Int, val po
 data class Selection(val text: String, val context: String = "")
 data class Lookup(val original: String, val translation: String, val definition: String = "",
     val example: String = "", val synonyms: String = "", val level: String = "",
-    val source: String = "Diccionario local", val cached: Boolean = false)
+    val source: String = "Google Translate · en el dispositivo", val cached: Boolean = false,
+    val contextTranslation: String = "")
 data class Preferences(val theme: String = "Oscuro", val fontSize: Int = 20,
-    val lineHeight: Float = 1.8f, val serif: Boolean = true, val endpoint: String = "https://api.openai.com/v1",
-    val model: String = "gpt-4.1-mini", val key: String = "")
+    val lineHeight: Float = 1.8f, val serif: Boolean = true, val endpoint: String = "https://generativelanguage.googleapis.com/v1beta",
+    val model: String = "gemini-3.5-flash-lite", val key: String = "", val provider: String = "gemini")

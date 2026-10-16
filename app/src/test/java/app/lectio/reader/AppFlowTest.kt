@@ -30,14 +30,14 @@ class AppFlowTest {
         }
     }
     @Test fun libraryNavigationAndReaderOpen() {
-        compose.waitUntil(15000) {compose.onAllNodesWithText("Un libro.\nOtro mundo.").fetchSemanticsNodes().isNotEmpty()}
+        compose.waitUntil(15000) {compose.onAllNodesWithText("¿Qué te gustaría leer?").fetchSemanticsNodes().isNotEmpty()}
         compose.onNodeWithText("Importar EPUB",useUnmergedTree=true).assertExists()
         capture("library-dark")
         compose.onNodeWithText("Vocabulario").performClick()
-        compose.onNodeWithText("Una palabra es un comienzo").assertExists()
+        compose.onNodeWithText("Aún no hay palabras guardadas").assertExists()
         capture("vocabulary-empty")
         compose.onNodeWithText("Actividad").performClick()
-        compose.onNodeWithText("Cada página cuenta.").assertExists()
+        compose.onNodeWithText("Resumen").assertExists()
         compose.onNodeWithText("Ajustes").performClick()
         compose.onNodeWithText("Claro").performClick()
         compose.waitUntil(5000) {compose.onAllNodes(hasText("Claro") and isSelected()).fetchSemanticsNodes().isNotEmpty()}

@@ -27,7 +27,6 @@ import java.util.Locale
     val max=days.maxOf {state.sessions[it.toString()] ?: 0}.coerceAtLeast(60)
     Scaffold(topBar={TopAppBar(title={Text("Tu actividad",style=MaterialTheme.typography.headlineMedium)})},contentWindowInsets=WindowInsets(0,0,0,0)) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState()).padding(24.dp),verticalArrangement=Arrangement.spacedBy(28.dp)) {
-            Column { Text("Cada página cuenta.",style=MaterialTheme.typography.headlineLarge);Spacer(Modifier.height(12.dp));Text("Tu tiempo de lectura y lo que vas aprendiendo, sin prisa.",style=MaterialTheme.typography.bodyLarge,color=MaterialTheme.colorScheme.onSurfaceVariant) }
             Surface(color=MaterialTheme.colorScheme.primaryContainer,shape=MaterialTheme.shapes.large) {
                 Column(Modifier.fillMaxWidth().padding(24.dp)) {
                     Text("Esta semana",style=MaterialTheme.typography.titleMedium)
@@ -44,7 +43,7 @@ import java.util.Locale
                     }
                 }
             }
-            SectionHeading("Lo que llevas contigo")
+            SectionHeading("Resumen")
             val rows=listOf("Tiempo de lectura" to "${seconds/60} min", "Días con lectura" to "${state.sessions.count {it.value>0}}", "Libros terminados" to "${state.books.count {it.progress>=.995f}}", "Palabras guardadas" to "${state.words.size}", "Palabras aprendidas" to "${state.words.count {it.learned}}")
             rows.forEach { (label,value) -> Row(Modifier.fillMaxWidth(),horizontalArrangement=Arrangement.SpaceBetween) {Text(label,style=MaterialTheme.typography.bodyLarge);Text(value,style=MaterialTheme.typography.titleMedium,color=MaterialTheme.colorScheme.primary)} }
             Text("El tiempo se registra mientras el lector está abierto y la app está en primer plano. Los datos permanecen en este dispositivo.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)

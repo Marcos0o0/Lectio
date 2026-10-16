@@ -17,7 +17,8 @@ data class ReaderState(
     val preferences: Preferences = Preferences(), val current: Book? = null,
     val navigationId: Int = 0, val fragment: String? = null,
     val selection: Selection? = null, val lookup: Lookup? = null,
-    val lookupLoading: Boolean = false, val lookupError: String? = null, val dictionarySize: Int = 0
+    val lookupLoading: Boolean = false, val lookupError: String? = null,
+    val translationReady: Boolean = false, val translationDownloading: Boolean = false, val translationNeedsDownload: Boolean = false
 )
 
 class ReaderViewModel(application: Application) : AndroidViewModel(application) {
@@ -33,7 +34,8 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         try { withContext(Dispatchers.IO) { repo.initialize(); refresh() } }
         catch(e: Exception) { message("No se pudo cargar la biblioteca: ${e.message}"); mutable.update { it.copy(loading=false) } }
     } }
-    private fun refresh() { val books=repo.db.books();val words=repo.db.words();val sessions=repo.db.reading();val prefs=repo.settings.load(); mutable.update { it.copy(loading=false,books=books,words=words,sessions=sessions,preferences=prefs,dictionarySize=repo.dictionary.size) } }
+    private fun refresh() { val books=repo.db.books();val words=repo.db.words();val sessions=repo.db.reading();val prefs=repo.settings.load(); mutable.update { it.copy(loading=false,books=books,words=words,sessions=sessions,preferences=prefs) } }
+    init { viewModelScope.launch { runCatching { repo.translation.ready() }.onSuccess {ready -> mutable.update {it.copy(translationReady=ready)}} } }
     fun message(text: String) { messages.trySend(text) }
     fun importBook(uri: Uri) { viewModelScope.launch {
         mutable.update { it.copy(importing=true) }
@@ -56,20 +58,35 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     fun navigationConsumed() {mutable.update {it.copy(fragment=null)}}
     fun remove(book: Book) { viewModelScope.launch(Dispatchers.IO) { repo.remove(book);refresh() }; message("Libro eliminado del dispositivo") }
     fun preferences(p: Preferences) { viewModelScope.launch { try { withContext(Dispatchers.IO) { repo.settings.save(p) };mutable.update { it.copy(preferences=p) } } catch(e:Exception) { message("No se pudo guardar la configuración: ${e.message}") } } }
-    fun select(selection: Selection) { if(selection.text.isBlank()) return; lookupJob?.cancel(); mutable.update { it.copy(selection=selection,lookup=null,lookupError=null,lookupLoading=true) }; query("translate",false) }
+    fun select(selection: Selection) { if(selection.text.isBlank()||mutable.value.selection==selection) return; lookupJob?.cancel(); mutable.update { it.copy(selection=selection,lookup=null,lookupError=null,lookupLoading=true,translationNeedsDownload=false) }; query("translate",false) }
+    fun downloadTranslation(wifiOnly: Boolean = true) {
+        if(mutable.value.translationDownloading) return
+        viewModelScope.launch {
+            mutable.update {it.copy(translationDownloading=true,lookupError=null)}
+            try {
+                repo.translation.download(wifiOnly)
+                mutable.update {it.copy(translationReady=true,translationNeedsDownload=false,translationDownloading=false)}
+                if(mutable.value.selection!=null) query("translate",false)
+                message("Español descargado. Ya puedes traducir sin conexión.")
+            } catch(e: CancellationException) {throw e}
+            catch(e: Exception) {val error="No se pudo descargar el idioma. Revisa tu conexión y vuelve a intentarlo.";mutable.update {it.copy(translationDownloading=false,lookupError=error)};message(error)}
+        }
+    }
     fun query(action: String, useAi: Boolean = true) {
         val selection=mutable.value.selection ?: return
         lookupJob?.cancel()
         lookupJob=viewModelScope.launch {
-            mutable.update { it.copy(lookupLoading=true,lookupError=null,lookup=null) }
+            mutable.update { it.copy(lookupLoading=true,lookupError=null,translationNeedsDownload=false) }
             try {
                 val result=withContext(Dispatchers.IO) { repo.lookup(selection,action,mutable.value.preferences,useAi) }
                 ensureActive(); mutable.update { it.copy(lookup=result,lookupLoading=false) }
             } catch(e: CancellationException) { throw e }
+            catch(e: TranslationModelRequired) {mutable.update {it.copy(lookupLoading=false,translationNeedsDownload=true)}}
             catch(e:Exception) { mutable.update { it.copy(lookupError=if(e is java.io.IOException) "No se pudo conectar. Revisa tu conexión e intenta de nuevo." else e.message ?: "No se pudo consultar el fragmento.",lookupLoading=false) } }
         }
     }
-    fun dismissSelection() { lookupJob?.cancel(); mutable.update { it.copy(selection=null,lookup=null,lookupLoading=false,lookupError=null) } }
+    fun dismissSelection() { lookupJob?.cancel(); mutable.update { it.copy(selection=null,lookup=null,lookupLoading=false,lookupError=null,translationNeedsDownload=false) } }
+    override fun onCleared() {repo.translation.close();repo.db.close();super.onCleared()}
     fun saveWord(manual: String? = null) {
         val s=mutable.value;val selection=s.selection ?: return; val lookup=s.lookup
         if(selection.text.trim().split(Regex("\\s+")).size>12) { message("Para tu vocabulario, selecciona una palabra o expresión corta.");return }

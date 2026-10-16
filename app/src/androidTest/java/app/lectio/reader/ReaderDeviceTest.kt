@@ -4,6 +4,8 @@ import android.graphics.Bitmap
 import android.os.SystemClock
 import android.view.View
 import android.view.ViewGroup
+import android.view.InputDevice
+import android.view.MotionEvent
 import android.view.accessibility.AccessibilityNodeInfo
 import android.webkit.WebView
 import androidx.test.ext.junit.rules.ActivityScenarioRule
@@ -25,13 +27,13 @@ class ReaderDeviceTest {
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val automation get()=instrumentation.uiAutomation
 
-    private fun await(description: String, condition: () -> Boolean) {
-        val deadline=SystemClock.elapsedRealtime()+30_000
+    private fun await(description: String, timeout: Long = 30_000, condition: () -> Boolean) {
+        val deadline=SystemClock.elapsedRealtime()+timeout
         do {
             if(condition()) return
             SystemClock.sleep(100)
         } while(SystemClock.elapsedRealtime()<deadline)
-        fail("No se cumplió en 30 s: $description")
+        fail("No se cumplió: $description")
     }
 
     private fun findNode(root: AccessibilityNodeInfo?, predicate: (AccessibilityNodeInfo) -> Boolean): AccessibilityNodeInfo? {
@@ -62,6 +64,15 @@ class ReaderDeviceTest {
             selected
         }
     }
+    private fun scrollTo(text: String) {
+        repeat(20) {
+            if(textNode(text)?.isVisibleToUser==true) return
+            val scroll=findNode(automation.rootInActiveWindow) {it.isScrollable}
+            scroll?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
+            SystemClock.sleep(300)
+        }
+        fail("No se encontró $text")
+    }
 
     private fun findWebView(view: View): WebView? {
         if(view is WebView) return view
@@ -81,7 +92,7 @@ class ReaderDeviceTest {
     }
 
     private fun library() {
-        await("Biblioteca visible") {textNode("Un libro.\nOtro mundo.")!=null}
+        await("Biblioteca visible") {textNode("¿Qué te gustaría leer?")!=null}
     }
     private fun openBook() {
         tap(text="A Little More Slowly")
@@ -98,6 +109,31 @@ class ReaderDeviceTest {
         bitmap.recycle()
     }
 
+    /** Find geometry only; the selection itself must come from real Android touch events. */
+    private fun touchWord(word: String, longPress: Boolean) {
+        await("Lector con foco táctil") {var focused=false;activity.scenario.onActivity {focused=it.hasWindowFocus()};focused}
+        automation.waitForIdle(150,5000)
+        val raw=javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf(${org.json.JSONObject.quote(word)});let r=document.createRange();r.setStart(n,i);r.setEnd(n,i+${word.length});let b=r.getBoundingClientRect();return JSON.stringify({x:b.x+b.width/2,y:b.y+b.height/2,scale:devicePixelRatio})})()""")
+        val position=org.json.JSONObject(org.json.JSONTokener(raw).nextValue() as String)
+        val location=IntArray(2)
+        activity.scenario.onActivity {host -> requireNotNull(findWebView(host.window.decorView)).getLocationOnScreen(location)}
+        val x=location[0]+position.getDouble("x").toFloat()*position.getDouble("scale").toFloat()
+        val y=location[1]+position.getDouble("y").toFloat()*position.getDouble("scale").toFloat()
+        val down=SystemClock.uptimeMillis()
+        fun event(action: Int) {
+            val motion=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,x,y,0).apply {source=InputDevice.SOURCE_TOUCHSCREEN}
+            try {assertTrue("Android rechazó el gesto",automation.injectInputEvent(motion,true))} finally {motion.recycle()}
+        }
+        event(MotionEvent.ACTION_DOWN);SystemClock.sleep(if(longPress) 1000 else 70);event(MotionEvent.ACTION_UP)
+    }
+    private fun closeLookup() {
+        tap(description="Cerrar consulta")
+        await("Ficha cerrada") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Cerrar consulta"}==null}
+        await("Lector con foco") {var focused=false;activity.scenario.onActivity {focused=it.hasWindowFocus()};focused}
+        automation.waitForIdle(150,5000)
+        await("Selección retirada") {javascript("getSelection().toString()")=="\"\""}
+    }
+
     @Test fun bookContentSelectionAndReopeningUseRealWebView() {
         library()
         tap(text="Ajustes");chooseTheme("Oscuro");tap(text="Biblioteca")
@@ -110,10 +146,27 @@ class ReaderDeviceTest {
         waitForChapter("For a few precious minutes")
         assertEquals("\"rgb(16, 18, 22)\"",javascript("getComputedStyle(document.documentElement).backgroundColor"))
         capture("phone-reader-dark-android15")
-        assertEquals("true",javascript("""(function(){const n=document.querySelector('p').firstChild;const i=n.textContent.indexOf('precious');if(i<0)return false;const r=document.createRange();r.setStart(n,i);r.setEnd(n,i+8);const s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event('selectionchange'));return true})()"""))
-        await("Traducción nativa") {textNode("precioso/a; valioso/a")!=null}
+        touchWord("precious",true)
+        await("Ficha tras mantener pulsado") {textNode("precious")!=null}
+        await("Traducción o descarga disponible") {textNode("Descargar por Wi-Fi")!=null||findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        if(textNode("Descargar por Wi-Fi")!=null) {
+            capture("phone-download-android15")
+            tap(text="Descargar usando datos móviles")
+        }
+        await("Traducción del modelo local",180_000) {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        await("Oración traducida") {textNode("En esta oración")!=null}
         capture("phone-lookup-dark-android15")
-        tap(description="Cerrar consulta")
+        closeLookup()
+        touchWord("minutes",false)
+        await("Ficha tras tocar palabra") {textNode("minutes")!=null}
+        await("Traducción de otra palabra") {textNode("En esta oración")!=null}
+        closeLookup()
+        // Phrase handles remain native; this range checks the multiword payload and real model.
+        assertEquals("true",javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf('For a few precious minutes'),r=document.createRange();r.setStart(n,i);r.setEnd(n,n.textContent.length);let s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event('selectionchange'));return true})()"""))
+        await("Ficha de frase") {textNode("Traducción")!=null}
+        await("Traducción de frase con modelo") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        capture("phone-phrase-android15")
+        closeLookup()
         tap(description="Capítulo siguiente")
         waitForChapter("On my desk there is a notebook")
         tap(description="Guardar marcador")
@@ -132,5 +185,8 @@ class ReaderDeviceTest {
         capture("phone-reader-light-android15")
         tap(description="Volver a la biblioteca")
         library();tap(text="Ajustes");chooseTheme("Oscuro")
+        scrollTo("Conectar Gemini");tap(text="Conectar Gemini")
+        scrollTo("Clave de Gemini")
+        capture("phone-gemini-setup-android15")
     }
 }

@@ -181,7 +181,7 @@ components:
 
 **Creative North Star: "A quiet reading room"**
 
-Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: a selected word opens a meaning sheet, while optional AI stays behind explicit actions. Local use requires no account.
+Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word or selecting text opens its translation and translated sentence in a native sheet. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.
 
 This is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.
 
@@ -189,7 +189,7 @@ This is a code-led record of the native Android Compose implementation, not a re
 - Modern graphite dark surfaces, slate containers, soft blue actions, and a cool light scheme.
 - Serif literary headings with sans serif functional text.
 - Material 3 controls, tonal containers, and native modal sheets.
-- Adjustable reading type and contextual meanings with visible provenance.
+- Adjustable reading type and local translations with visible provenance.
 - Four destinations that adapt from bottom navigation to a rail.
 
 ## Colors
@@ -210,7 +210,7 @@ Muted violet completes the explicit Material scheme for components that request 
 
 ### Neutral
 
-Background and surface share graphite in dark mode and cool near-white in light mode; on-background and on-surface supply the matching text. On-surface-variant carries authors, explanations, metadata, and helper copy. Outline-variant carries dividers. The five surface-container levels provide tonal layers for native components; selected passages and EPUB blockquotes use surface-container. Inverse, tint, error, scrim, bright, and dim roles are explicitly recorded, rather than inherited from a warm default scheme.
+Background and surface share graphite in dark mode and cool near-white in light mode; on-background and on-surface supply the matching text. On-surface-variant carries authors, explanations, metadata, and helper copy. Outline-variant carries dividers. The five surface-container levels provide tonal layers for native components; EPUB blockquotes use surface-container. Inverse, tint, error, scrim, bright, and dim roles are explicitly recorded, rather than inherited from a warm default scheme.
 
 **The Paired Roles Rule.** Resolve UI colors through MaterialTheme.colorScheme and use the foreground role corresponding to its background role.
 
@@ -226,8 +226,8 @@ Literata display and headline roles create the literary character; sans serif ti
 
 ### Hierarchy
 
-- **Display small:** library introductory heading; use the `display-small` token.
-- **Headline large:** vocabulary and activity introductions, saved-word sheet heading.
+- **Display small:** retained in `LectioTypography`; no longer used for the library introduction.
+- **Headline large:** library question, vocabulary and activity introductions, saved-word sheet heading.
 - **Headline medium:** app bar titles, lookup heading, weekly reading total.
 - **Headline small:** section headings, empty states, continuing-book title, word translation.
 - **Title large:** vocabulary row word and saved-word translation.
@@ -237,7 +237,7 @@ Literata display and headline roles create the literary character; sans serif ti
 
 **The Two Reading Voices Rule.** Use the Compose type roles for app UI; allow the separate reading page to follow the reader's serif/sans, size, and line-height preferences.
 
-The EPUB page defaults to bundled Literata / generic serif, size (20 CSS px), and line height (1.8), with sans serif as the alternate. Controls permit size (16–32 CSS px) and line height (1.4–2.2). WebView `textZoom` follows the Android system font scale, so these preference values scale with the OS. The reader font is bundled at `app/src/main/assets/fonts/literata.ttf` and served from an intercepted local URL without network access. WebView h1 uses (1.8em), regular weight and leading (1.2); h2 uses (1.25em) and leading (1.35).
+The EPUB page defaults to bundled Literata / generic serif, size (20 CSS px), and line height (1.8), with sans serif as the alternate. Controls permit size (16–32 CSS px) and line height (1.4–2.2). WebView `textZoom` follows the Android system font scale, so these preference values scale with the OS. The reader font is bundled at `app/src/main/assets/fonts/literata.ttf` and served from an intercepted local URL without network access. WebView h1 uses (1.8em), regular weight and leading (1.2); h2 uses (1.25em) and leading (1.35). Heading separation uses h2 top padding (1em), bottom margin (.7em), and `display: flow-root` to keep adjacent paragraph margins from collapsing into the heading.
 
 ## Layout
 
@@ -255,7 +255,7 @@ Insets are managed across native scaffolds and activity setup, with a reader nav
 
 ## Elevation & Depth
 
-Tonal surfaces provide most of the visual structure. The continuing-reading card and review/activity summaries use colored containers; selected passages use a neutral container, and dividers use the outline variant. Native FABs, menus, dialogs, bottom sheets, and buttons retain Material 3 default elevation and state behavior. There are no custom shadow, elevation, or motion token definitions to export. Do not invent CSS shadows or bespoke hover transitions for native controls.
+Tonal surfaces provide most of the visual structure. The continuing-reading card and review/activity summaries use colored containers; dividers use the outline variant. Native FABs, menus, dialogs, bottom sheets, and buttons retain Material 3 default elevation and state behavior. There are no custom shadow, elevation, or motion token definitions to export. Do not invent CSS shadows or bespoke hover transitions for native controls.
 
 ## Shapes
 
@@ -265,11 +265,11 @@ The continuing-reading card has the explicit `resume-card` radius. Book covers h
 
 ### Buttons
 
-Filled `Button` is used for saving vocabulary and configuration; `FilledTonalButton` for review and saving a highlight; `OutlinedButton` for optional AI setup; `TextButton` for lower emphasis actions and dialog choices. Most form actions fill available width. Icons, selected/loading/disabled behavior, ripple, focus, and touch targets come from Material 3, without custom web hover styling. The import action is one extended FAB with primary/onPrimary colors and a progress indicator while importing.
+Filled `Button` is used for saving vocabulary and configuration; `FilledTonalButton` for review and saving a highlight; `OutlinedButton` for optional Gemini connection, translation retry, and personal translation save; `TextButton` for lower emphasis actions and dialog choices. Most form actions fill available width. Icons, selected/loading/disabled behavior, ripple, focus, and touch targets come from Material 3, without custom web hover styling. The import action is one extended FAB with primary/onPrimary colors and a progress indicator while importing.
 
 ### Chips
 
-`FilterChip` expresses selected library/vocabulary filters, theme, and reading font. `AssistChip` expresses optional AI actions and is disabled during lookup loading. Their colors, borders, state layers, and shapes retain Material defaults. Wrap groups using the existing `FlowRow` patterns where space varies.
+`FilterChip` expresses selected library/vocabulary filters, theme, and reading font. `AssistChip` expresses explicit Gemini explanation, grammar, and simpler-English actions and is disabled during lookup loading. Their colors, borders, state layers, and shapes retain Material defaults. Wrap groups using the existing `FlowRow` patterns where space varies.
 
 ### Cards / Containers
 
@@ -277,7 +277,7 @@ The continuing-reading card uses the explicit paired primary-container foregroun
 
 ### Inputs / Fields
 
-Search, API setup, personal translation, and notes use `OutlinedTextField`. Search is single line; translation and notes allow up to four lines. The API key has native password transformation and a visibility icon. Settings validation appears as separate error-role text, not a custom error border system. Field focus, cursor, border, and disabled treatment remain Material defaults.
+Search, API setup, personal translation, and notes use `OutlinedTextField`. Search is single line; translation and notes allow up to four lines. The optional connection key has native password transformation and a visibility icon. The inline Gemini connection form is disclosed by an outlined action; provider, model, and endpoint fields stay under advanced options. Selection/context sharing, account usage, and encrypted local key storage are disclosed before saving the connection. Settings validation appears as separate error-role text, not a custom error border system. Field focus, cursor, border, and disabled treatment remain Material defaults.
 
 ### Navigation
 
@@ -289,11 +289,11 @@ Real EPUB cover images crop to the cover bounds. Missing covers get a determinis
 
 ### Meaning Sheet
 
-Text selection opens `LookupSheet`, a fully expanded `ModalBottomSheet` with a scrollable column, native close/pronunciation controls, translation and explanation, optional examples and synonyms, and a visible source/cache/approximate CEFR line. Longer selections show a neutral passage container. A local result can be saved; absent results permit a personal translation. AI actions remain explicit and show generated-response provenance. An expandable note field saves a highlight. The sheet stays in the reading context and requires no account.
+Tapping a word or selecting text opens `LookupSheet`, a fully expanded `ModalBottomSheet` with a scrollable column and native close/pronunciation controls. Word results use headline-small translation; phrases use body-large translation and show the selected text above it. When available, the original sentence and its translation appear under “En esta oración”. Google ML Kit results carry an official, unmodified theme-appropriate Google Translate badge and on-device attribution; generated explanations carry their source and an AI-error notice. First use offers a one-time Spanish download, Wi-Fi by default with an explicit mobile-data choice, progress, errors, and retry. Subsequent translation needs no key or per-query billing; the former hardcoded dictionary is removed. Vocabulary save is available for selections up to 12 words. The optional Gemini connection action leads to the disclosed settings form; connected accounts expose explicit explanation chips and account-usage copy. An expandable annotation area saves highlights and notes and permits personal translation when no result exists. The sheet stays in the reading context and requires no account.
 
 ### Reading Surface
 
-An isolated WebView renders reflowable content using theme background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. Native selection opens the meaning sheet; saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Selection and saved highlights use paired theme container roles, blockquotes use the surface container, and dividers use the theme outline variant. The error HTML fallback uses the same background and foreground as the reading page.
+An isolated WebView renders reflowable content using theme background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. A tap selects a word; long press uses native selection. Both feed the translation sheet through the touch/selection bridge, and native selection adds a “Traducir” action as a fallback. Saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Selection and saved highlights use paired theme container roles, blockquotes use the surface container, and dividers use the theme outline variant. The error HTML fallback uses the same background and foreground as the reading page.
 
 ## Do's and Don'ts
 
@@ -303,7 +303,7 @@ An isolated WebView renders reflowable content using theme background/foreground
 - **Do** use serif headline roles and sans serif functional type through `LectioTypography`.
 - **Do** retain the compact navigation bar and expanded navigation rail behavior.
 - **Do** keep reading preferences separate from app UI typography.
-- **Do** preserve visible meaning provenance and explicit optional AI actions in the reading context.
+- **Do** preserve visible translation provenance, one-time download choices, and explicit optional explanation actions in the reading context.
 - **Do** use native Material controls and their built-in interaction states.
 
 ### Don't:
@@ -312,4 +312,4 @@ An isolated WebView renders reflowable content using theme background/foreground
 - **Don't** promote tiny uppercase cover labels into a reusable heading pattern.
 - **Don't** describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.
 - **Don't** introduce account UI as a prerequisite to local reading or vocabulary.
-- **Don't** present Android 15 emulator captures or DOM selection tests as physical-phone gesture, TTS, or performance verification.
+- **Don't** present Android 15 emulator touch/long-press or DOM phrase-selection tests as physical-phone, selection-handle, TalkBack, live Gemini, TTS, or performance verification.
