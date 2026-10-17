@@ -18,6 +18,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -33,11 +35,25 @@ import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable fun ReaderScreen(vm: ReaderViewModel,state: ReaderState,snackbars: SnackbarHostState) {
+    val appScheme=MaterialTheme.colorScheme
+    val scheme=readingColors(state.preferences)
+    val view=LocalView.current
+    fun bars(light: Boolean) {(view.context as? android.app.Activity)?.window?.let {window -> androidx.core.view.WindowCompat.getInsetsController(window,view).apply {isAppearanceLightStatusBars=light;isAppearanceLightNavigationBars=light}}}
+    SideEffect {bars(scheme.background.luminance()>.5f)}
+    DisposableEffect(view,appScheme) {onDispose {bars(appScheme.background.luminance()>.5f)}}
+    MaterialTheme(colorScheme=scheme) {ReaderContent(vm,state,snackbars)}
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable private fun ReaderContent(vm: ReaderViewModel,state: ReaderState,snackbars: SnackbarHostState) {
     val book=state.current ?: return
     val readingScheme=readingColors(state.preferences)
     var panel by rememberSaveable(book.id) {mutableStateOf<String?>(null)}
     var webView by remember {mutableStateOf<WebView?>(null)}
+    var pagination by remember(book.id,book.chapter) {mutableStateOf(ReaderPage())}
+    fun turn(direction: Int) {webView?.evaluateJavascript("window.lectioTurn && window.lectioTurn($direction)",null)}
     var searchTerm by rememberSaveable(book.id) {mutableStateOf("")}
+    var pendingSearch by rememberSaveable(book.id) {mutableStateOf("")}
     var searchOccurrence by rememberSaveable(book.id) {mutableIntStateOf(0)}
     val lifecycle=LocalLifecycleOwner.current
     LaunchedEffect(book.id,lifecycle) {
@@ -48,7 +64,7 @@ import java.io.File
     LaunchedEffect(state.selection) { if(state.selection==null) webView?.evaluateJavascript("window.getSelection().removeAllRanges();window.lastLookup='';",null) }
     Scaffold(
         snackbarHost={SnackbarHost(snackbars)},
-        topBar={TopAppBar(title={Column {Text(book.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis);Text("Capítulo ${book.chapter+1} de ${book.chapters.size}",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}},navigationIcon={IconButton(onClick=vm::closeBook){Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Volver a la biblioteca")}},actions={
+        topBar={TopAppBar(title={Column {Text(book.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis);Text("${book.chapter+1}/${book.chapters.size} · ${book.chapters[book.chapter].title}",maxLines=1,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}},navigationIcon={IconButton(onClick=vm::closeBook){Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Volver a la biblioteca")}},actions={
             IconButton(onClick={panel="search"}){Icon(Icons.Outlined.Search,"Buscar dentro del libro")}
             IconButton(onClick={panel="type"}){Icon(Icons.Outlined.TextFields,"Apariencia de lectura")}
         })},
@@ -56,17 +72,20 @@ import java.io.File
             LinearProgressIndicator(progress={book.progress},Modifier.fillMaxWidth(),trackColor=MaterialTheme.colorScheme.surfaceVariant)
             Row(Modifier.fillMaxWidth().padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                 IconButton(onClick={panel="contents"}){Icon(Icons.Outlined.FormatListBulleted,"Índice y anotaciones")}
-                IconButton(onClick={vm.chapter(book.chapter-1)},enabled=book.chapter>0){Icon(Icons.AutoMirrored.Outlined.NavigateBefore,"Capítulo anterior")}
-                Text("${(book.progress*100).toInt()} %",style=MaterialTheme.typography.labelLarge)
-                IconButton(onClick={if(book.chapter==book.chapters.lastIndex){vm.progress(book.chapter,1f);vm.closeBook()}else vm.chapter(book.chapter+1)}){Icon(if(book.chapter==book.chapters.lastIndex) Icons.Outlined.DoneAll else Icons.AutoMirrored.Outlined.NavigateNext,if(book.chapter==book.chapters.lastIndex) "Terminar libro" else "Capítulo siguiente")}
+                IconButton(onClick={turn(-1)},enabled=pagination.pages>0&&(pagination.page>0||book.chapter>0)){Icon(Icons.AutoMirrored.Outlined.NavigateBefore,"Página anterior")}
+                Column(Modifier.weight(1f),horizontalAlignment=Alignment.CenterHorizontally) {
+                    Text(if(pagination.pages==0) "Preparando páginas…" else "Página ${pagination.page+1} de ${pagination.pages}",style=MaterialTheme.typography.labelLarge,maxLines=1,overflow=TextOverflow.Ellipsis)
+                    Text("del capítulo · ${(book.progress*100).toInt()} % del libro",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant,maxLines=1,overflow=TextOverflow.Ellipsis)
+                }
+                IconButton(onClick={turn(1)},enabled=pagination.pages>0&&(pagination.page<pagination.pages-1||book.chapter<book.chapters.lastIndex)){Icon(Icons.AutoMirrored.Outlined.NavigateNext,"Página siguiente")}
                 IconButton(onClick={vm.annotate(text=book.chapters[book.chapter].title)}){Icon(Icons.Outlined.BookmarkAdd,"Guardar marcador")}
             }
         } }},contentWindowInsets=WindowInsets(0,0,0,0)
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            if(state.preferences.showReadingHint) Text(if(state.preferences.tapToTranslate) "Toca una palabra para ver su significado. Mantén pulsado para seleccionar una frase." else "Mantén pulsada una palabra o frase para consultar.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            if(state.preferences.showReadingHint) Text(if(state.preferences.tapToTranslate) "Desliza para pasar página. Toca una palabra para consultar; mantén pulsado para seleccionar." else "Desliza para pasar página. Mantén pulsada una palabra o frase para consultar.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
             key(book.id,book.chapter) {
-                ReaderWebView(book,state.preferences,readingScheme.background,readingScheme.onBackground,state.annotations,searchTerm,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{vm.readerProgress(book.id,book.chapter,it)},{index,anchor->vm.chapter(index,fragment=anchor)},vm::navigationConsumed)
+                ReaderWebView(book,state.preferences,readingScheme.background,readingScheme.onBackground,state.annotations,pendingSearch,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{pagination=it;vm.readerProgress(book.id,book.chapter,it.progress,it.offset)},{direction->if(direction<0&&book.chapter>0)vm.chapter(book.chapter-1,1f) else if(direction>0&&book.chapter<book.chapters.lastIndex)vm.chapter(book.chapter+1)},{index,anchor->vm.chapter(index,fragment=anchor)},{pendingSearch="";vm.navigationConsumed()})
             }
         }
     }
@@ -86,7 +105,7 @@ import java.io.File
                     ListItem(modifier=Modifier.clickable {vm.chapter(i);panel=null},headlineContent={Text(chapter.title)},leadingContent={Text("${i+1}",color=MaterialTheme.colorScheme.primary)},trailingContent={if(i==book.chapter) Icon(Icons.Outlined.MenuBook,"Capítulo actual",tint=MaterialTheme.colorScheme.primary)})
                 } else {
                     if(state.annotations.isEmpty()) item {EmptyState(Icons.Outlined.BookmarkBorder,"Aún no hay anotaciones","Usa el marcador para guardar tu lugar, o selecciona un fragmento para subrayarlo y añadir una nota.")}
-                    itemsIndexed(state.annotations) { _,annotation -> ListItem(modifier=Modifier.clickable {vm.chapter(annotation.chapter,annotation.position);panel=null},headlineContent={Text(annotation.text.ifBlank {"Marcador"},maxLines=3,overflow=TextOverflow.Ellipsis)},supportingContent={Text("Capítulo ${annotation.chapter+1}${if(annotation.note.isNotBlank()) " · ${annotation.note}" else ""}")},leadingContent={Icon(if(annotation.type=="highlight") Icons.Outlined.BorderColor else Icons.Outlined.BookmarkBorder,null)},trailingContent={IconButton(onClick={vm.deleteAnnotation(annotation.id)}) {Icon(Icons.Outlined.DeleteOutline,"Eliminar anotación")}}) }
+                    itemsIndexed(state.annotations) { _,annotation -> ListItem(modifier=Modifier.clickable {vm.chapter(annotation.chapter,annotation.position,textOffset=annotation.textOffset);panel=null},headlineContent={Text(annotation.text.ifBlank {"Marcador"},maxLines=3,overflow=TextOverflow.Ellipsis)},supportingContent={Text("Capítulo ${annotation.chapter+1}${if(annotation.note.isNotBlank()) " · ${annotation.note}" else ""}")},leadingContent={Icon(if(annotation.type=="highlight") Icons.Outlined.BorderColor else Icons.Outlined.BookmarkBorder,null)},trailingContent={IconButton(onClick={vm.deleteAnnotation(annotation.id)}) {Icon(Icons.Outlined.DeleteOutline,"Eliminar anotación")}}) }
                 }
             }
         }
@@ -117,10 +136,9 @@ import java.io.File
             LazyColumn(Modifier.fillMaxWidth().heightIn(max=440.dp),contentPadding=PaddingValues(bottom=32.dp)) {
                 itemsIndexed(matches) { _,match ->ListItem(modifier=Modifier.clickable {
                     searchTerm=query.trim();searchOccurrence=match.occurrence
+                    pendingSearch=if(match.chapter==book.chapter) "" else searchTerm
                     if(match.chapter==book.chapter) webView?.let {view ->
-                        var moved=false
-                        view.setFindListener {_,count,done->if(done&&!moved&&count>0){moved=true;repeat(match.occurrence.coerceAtMost(count-1)){view.findNext(true)}}}
-                        view.clearMatches();view.findAllAsync(searchTerm)
+                        view.evaluateJavascript("window.lectioSearch(${org.json.JSONObject.quote(searchTerm)},${match.occurrence})",null)
                     } else vm.chapter(match.chapter)
                     panel=null
                 },headlineContent={Text(book.chapters[match.chapter].title,style=MaterialTheme.typography.titleMedium)},supportingContent={Text(match.snippet)})}

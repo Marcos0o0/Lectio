@@ -82,6 +82,7 @@ class ReaderDeviceTest {
     }
 
     private fun javascript(script: String): String {
+        await("WebView creado") {var exists=false;activity.scenario.onActivity {exists=findWebView(it.window.decorView)!=null};exists}
         val value=AtomicReference<String>()
         val done=CountDownLatch(1)
         activity.scenario.onActivity { host ->
@@ -185,7 +186,7 @@ class ReaderDeviceTest {
         await("Traducción de frase con modelo") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
         capture("phone-phrase-android15")
         closeLookup()
-        tap(description="Capítulo siguiente")
+        tap(description="Índice y anotaciones");tap(text="A word worth keeping")
         waitForChapter("On my desk there is a notebook")
         tap(description="Guardar marcador")
         tap(description="Volver a la biblioteca")
@@ -224,12 +225,94 @@ class ReaderDeviceTest {
         assertEquals("\"rgb(246, 248, 252)\"",javascript("getComputedStyle(document.documentElement).backgroundColor"))
         val paragraphMargin=app.lectio.reader.data.SettingsStore(instrumentation.targetContext).load().fontSize*1.5f
         assertEquals(paragraphMargin,org.json.JSONTokener(javascript("parseFloat(getComputedStyle(document.querySelector('p')).marginBottom)")).nextValue().toString().toFloat(),.01f)
-        assertNull(textNode("Toca una palabra para ver su significado. Mantén pulsado para seleccionar una frase."))
+        assertNull(textNode("Desliza para pasar página. Toca una palabra para consultar; mantén pulsado para seleccionar."))
         var kept=false;activity.scenario.onActivity {kept=requireNotNull(findWebView(it.window.decorView)).keepScreenOn};assertTrue(kept)
         capture("phone-reader-custom-android15")
         tap(description="Apariencia de lectura");capture("phone-reader-appearance-android15");scrollTo("Restablecer lectura");tap(text="Restablecer lectura")
         tap(description="Cerrar apariencia")
         await("Valores iniciales restaurados") {javascript("getComputedStyle(document.body).paddingLeft")=="\"28px\""}
+        tap(description="Volver a la biblioteca");library()
+    }
+
+    @Test fun pagesTurnWithoutSkippingChaptersAndKeepTextWhenReflowing() {
+        val context=instrumentation.targetContext
+        val file=File(context.cacheDir,"pagination-test.epub")
+        java.util.zip.ZipOutputStream(file.outputStream()).use {zip ->
+            fun entry(path: String,text: String) {zip.putNextEntry(java.util.zip.ZipEntry(path).apply {time=0});zip.write(text.toByteArray());zip.closeEntry()}
+            entry("mimetype","application/epub+zip")
+            entry("META-INF/container.xml","""<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>""")
+            entry("content.opf","""<package xmlns="http://www.idpf.org/2007/opf" version="3.0"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Pagination test</dc:title><dc:creator>Lectio tests</dc:creator></metadata><manifest><item id="one" href="one.xhtml" media-type="application/xhtml+xml"/><item id="two" href="two.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="one"/><itemref idref="two"/></spine></package>""")
+            val paragraphs=(1..90).joinToString("") {i -> "<p id='passage-$i'>Passage $i. "+"We read one page at a time, and every quiet sentence stays in its place. ".repeat(8)+"</p>"}
+            entry("one.xhtml","<html><head><title>A long chapter</title></head><body><h1>A long chapter</h1>$paragraphs</body></html>")
+            entry("two.xhtml","<html><head><title>The last chapter</title></head><body><h1>The last chapter</h1><p>Here is the final page of our test book.</p></body></html>")
+        }
+        activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].importBook(android.net.Uri.fromFile(file))}
+        await("Libro largo importado") {textNode("Pagination test")!=null}
+        tap(text="Pagination test")
+        activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].chapter(0)}
+        fun pageState(): org.json.JSONObject {
+            val raw=org.json.JSONTokener(javascript("window.lectioPage && JSON.stringify(window.lectioPage())")).nextValue()
+            return if(raw is String) org.json.JSONObject(raw) else org.json.JSONObject().put("page",-1).put("pages",0).put("anchor",-1)
+        }
+        fun chapterIndex(): Int {var index=-1;activity.scenario.onActivity {index=androidx.lifecycle.ViewModelProvider(it)[ReaderViewModel::class.java].state.value.current?.chapter ?: -1};return index}
+        await("Capítulo largo paginado") {javascript("window.lectioPage && window.lectioPage().pages > 15")=="true"}
+        assertEquals(0,pageState().getInt("page"))
+        tap(description="Página siguiente");await("Una sola página adelante") {pageState().getInt("page")==1}
+        assertEquals(0,chapterIndex())
+        // Native horizontal swipe, not a synthetic DOM gesture.
+        val location=IntArray(2);var width=0;var height=0
+        activity.scenario.onActivity {host -> requireNotNull(findWebView(host.window.decorView)).let {it.getLocationOnScreen(location);width=it.width;height=it.height}}
+        val down=SystemClock.uptimeMillis()
+        for(i in 0..12) {
+            val action=if(i==0) MotionEvent.ACTION_DOWN else if(i==12) MotionEvent.ACTION_UP else MotionEvent.ACTION_MOVE
+            val event=MotionEvent.obtain(down,SystemClock.uptimeMillis(),action,location[0]+width*(.8f-.6f*i/12),location[1]+height*.6f,0).apply {source=InputDevice.SOURCE_TOUCHSCREEN}
+            try {automation.injectInputEvent(event,true)} finally {event.recycle()}
+            SystemClock.sleep(16)
+        }
+        await("Deslizar avanza una página") {pageState().getInt("page")==2}
+        assertEquals(0,chapterIndex())
+        tap(description="Página anterior");await("Regreso a la página previa") {pageState().getInt("page")==1}
+        val saved=pageState().getInt("anchor")
+        assertTrue(saved>0)
+        tap(description="Guardar marcador")
+        activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].preferences {it.copy(fontSize=28,margin=44)}}
+        await("Texto conservado al cambiar tamaño") {pageState().getInt("anchor")==saved&&javascript("getComputedStyle(document.body).fontSize")=="\"28px\""}
+        assertEquals("true",javascript("""(function(){let s=window.lectioPage();return s.page>0&&s.anchor===$saved})()"""))
+        tap(description="Apariencia de lectura");tap(text="Página");chooseTheme("Papel");tap(description="Cerrar apariencia")
+        await("Fondo Papel y lugar conservado") {javascript("getComputedStyle(document.documentElement).backgroundColor")=="\"rgb(246, 235, 207)\""&&pageState().getInt("anchor")==saved}
+        assertEquals(saved,pageState().getInt("anchor"))
+        capture("phone-paper-page-android15")
+        val portraitWidth=javascript("innerWidth")
+        try {
+            assertTrue(automation.setRotation(android.app.UiAutomation.ROTATION_FREEZE_90))
+            await("Ventana horizontal") {javascript("innerWidth")!=portraitWidth}
+            await("Mismo texto tras girar") {javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
+        } finally {automation.setRotation(android.app.UiAutomation.ROTATION_FREEZE_0)}
+        await("Regreso a vertical conservando texto") {javascript("innerWidth")==portraitWidth&&javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
+        tap(description="Volver a la biblioteca");library();tap(text="Pagination test")
+        await("Lugar restaurado al reabrir") {javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
+        // Search and fragment navigation choose the containing page, without selecting for lookup.
+        javascript("window.lectioSearch('Passage 60.',0)")
+        await("Resultado en página posterior") {pageState().getInt("anchor")>saved+1000}
+        assertEquals("true",javascript("document.querySelector('mark[data-lectio-search]').textContent==='Passage 60.'"))
+        javascript("window.lectioFragment('passage-10')")
+        assertTrue(pageState().getInt("page")>0)
+        javascript("window.lectioRestore(1,-1)")
+        await("Última página del capítulo") {pageState().let {it.getInt("page")==it.getInt("pages")-1}}
+        tap(description="Página siguiente");waitForChapter("Here is the final page")
+        await("Cruce al siguiente capítulo") {chapterIndex()==1&&pageState().getInt("page")==0}
+        javascript("window.lectioRestore(1,-1)")
+        await("Fin del libro sin avance disponible") {
+            var node=findNode(automation.rootInActiveWindow) {it.contentDescription=="Página siguiente"}
+            var disabled=false
+            while(node!=null) {if(!node.isEnabled) disabled=true;node=node.parent}
+            disabled
+        }
+        capture("phone-final-page-android15")
+        javascript("window.lectioRestore(0,-1)")
+        await("Primera página del último capítulo") {pageState().getInt("page")==0}
+        tap(description="Página anterior");waitForChapter("Passage 90.")
+        await("Retroceso a la última página anterior") {chapterIndex()==0&&pageState().let {it.getInt("pages")>15&&it.getInt("page")==it.getInt("pages")-1}}
         tap(description="Volver a la biblioteca");library()
     }
 }

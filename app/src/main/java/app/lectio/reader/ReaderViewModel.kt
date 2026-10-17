@@ -49,16 +49,16 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     } }
     fun open(book: Book) { lookupJob?.cancel(); mutable.update { it.copy(current=book,selection=null,lookup=null,fragment=null,navigationId=it.navigationId+1) }; viewModelScope.launch(Dispatchers.IO) {
         val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it }
-    }; progress(book.chapter,book.position) }
+    }; progress(book.chapter,book.position,book.textOffset) }
     fun closeBook() { dismissSelection(); mutable.update { it.copy(current=null) } }
-    fun progress(chapter: Int, position: Float) {
+    fun progress(chapter: Int, position: Float, textOffset: Int = -1) {
         val book=mutable.value.current ?: return
-        val updated=book.copy(chapter=chapter.coerceIn(book.chapters.indices),position=position.coerceIn(0f,1f),lastRead=System.currentTimeMillis())
+        val updated=book.copy(chapter=chapter.coerceIn(book.chapters.indices),position=position.coerceIn(0f,1f),textOffset=textOffset,lastRead=System.currentTimeMillis())
         mutable.update { it.copy(current=updated,books=it.books.map { b -> if(b.id==updated.id) updated else b }) }
         progressWrites.trySend(updated)
     }
-    fun readerProgress(bookId: String, chapter: Int, position: Float) { val current=mutable.value.current ?: return; if(current.id==bookId&&current.chapter==chapter) progress(chapter,position) }
-    fun chapter(index: Int, position: Float = 0f, fragment: String? = null) { dismissSelection(); progress(index,position);mutable.update { it.copy(navigationId=it.navigationId+1,fragment=fragment) } }
+    fun readerProgress(bookId: String, chapter: Int, position: Float, textOffset: Int = -1) { val current=mutable.value.current ?: return; if(current.id==bookId&&current.chapter==chapter) progress(chapter,position,textOffset) }
+    fun chapter(index: Int, position: Float = 0f, fragment: String? = null, textOffset: Int = -1) { if(index !in (mutable.value.current?.chapters?.indices ?: return)) return;dismissSelection(); progress(index,position,textOffset);mutable.update { it.copy(navigationId=it.navigationId+1,fragment=fragment) } }
     fun navigationConsumed() {mutable.update {it.copy(fragment=null)}}
     fun remove(book: Book) { viewModelScope.launch(Dispatchers.IO) { repo.remove(book);refresh() }; message("Libro eliminado del dispositivo") }
     fun preferences(change: (Preferences) -> Preferences) {
@@ -128,7 +128,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     fun deleteWord(word: Word) { viewModelScope.launch(Dispatchers.IO) { repo.db.deleteWord(word.text);refresh() } }
     fun annotate(text: String = "", note: String = "", type: String = "bookmark") {
         val book=mutable.value.current ?: return
-        viewModelScope.launch(Dispatchers.IO) { repo.db.annotate(book.id,book.chapter,book.position,text,note,type); val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it } }
+        viewModelScope.launch(Dispatchers.IO) { repo.db.annotate(book.id,book.chapter,book.position,text,note,type,book.textOffset); val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it } }
         message(if(type=="bookmark") "Marcador guardado" else "Subrayado guardado")
     }
     fun deleteAnnotation(id: Long) { val book=mutable.value.current ?: return; viewModelScope.launch(Dispatchers.IO) { repo.db.deleteAnnotation(id); val annotations=repo.db.annotations(book.id);mutable.update { it.copy(annotations=annotations) } } }

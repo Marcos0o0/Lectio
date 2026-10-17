@@ -74,6 +74,30 @@ colors:
   error-container-dark: "#93000A"
   on-error-container-dark: "#FFDAD6"
   scrim-dark: "#000000"
+  primary-paper: "#5C5B35"
+  on-primary-paper: "#FFFFFF"
+  primary-container-paper: "#E7E3B6"
+  on-primary-container-paper: "#302F13"
+  secondary-paper: "#675D46"
+  on-secondary-paper: "#FFFFFF"
+  secondary-container-paper: "#E8DDBA"
+  on-secondary-container-paper: "#332C1C"
+  background-paper: "#F6EBCF"
+  on-background-paper: "#302B22"
+  surface-paper: "#F6EBCF"
+  on-surface-paper: "#302B22"
+  surface-variant-paper: "#E8DDBF"
+  on-surface-variant-paper: "#5F5644"
+  outline-paper: "#7D735B"
+  outline-variant-paper: "#CFC1A2"
+  surface-container-lowest-paper: "#FFF8E8"
+  surface-container-low-paper: "#F3E7CA"
+  surface-container-paper: "#EEE1C0"
+  surface-container-high-paper: "#E9DAB5"
+  surface-container-highest-paper: "#E4D4AA"
+  surface-dim-paper: "#E4D4AA"
+  surface-bright-paper: "#F6EBCF"
+  surface-tint-paper: "#5C5B35"
   cover-blue: "#293F5D"
   cover-violet: "#3E425C"
   cover-teal: "#2E4A53"
@@ -183,6 +207,8 @@ components:
 
 Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word opens translation and real dictionary meanings in a native sheet, with separate context and notes tabs; selecting a phrase opens translation. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.
 
+The reader adds an explicitly selected Papel palette: soft cream pages, dark brown ink, and muted olive actions continue through its native frame. This reading-only choice leaves the library and application theme independent. Reading advances one viewport page at a time, retaining text location as type and window dimensions change.
+
 This is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.
 
 **Key Characteristics:**
@@ -190,11 +216,14 @@ This is a code-led record of the native Android Compose implementation, not a re
 - Serif literary headings with sans serif functional text.
 - Material 3 controls, tonal containers, and native modal sheets.
 - Adjustable reading type, page and controls, with a live preview and visible dictionary/translation provenance.
+- Sequential viewport pages and an optional Papel reading palette shared by content and reader chrome.
 - Four destinations that adapt from bottom navigation to a rail.
 
 ## Colors
 
 The palette uses graphite and slate neutrals with soft blue primary actions. Both schemes explicitly define every Material 3 color role in ui/Theme.kt; the frontmatter records those assignments without deriving a replacement palette. There is no dynamic wallpaper color implementation.
+
+Papel is an approved reader-only extension in `LectioPaper`, a copy of `LectioLight` with the explicit `*-paper` overrides recorded above. Unoverridden tertiary, inverse, error, and scrim roles retain their light-scheme values. Cream background/surface and dark brown on-background/on-surface pair with muted olive primary actions and warm brown secondary roles; matching containers color selection and saved highlights. The selected reading scheme also colors the reader top bar, page toolbar, appearance/contents/search sheets, and system-bar icon appearance. It does not replace the app palette or establish warm colors for library surfaces.
 
 ### Primary
 
@@ -247,11 +276,11 @@ Lists and settings use the `screen-inset` token. Common list spacing is `gap-sec
 
 The continuing-reading card pairs a cover (98 × 148dp) with a flexible text column. Library rows use covers (72 × 108dp), a flexible title/metadata column, and a native overflow action. These are observed component dimensions, not a universal grid. Expanded screens currently retain a single main content column; the rail does not imply a tablet multi-pane layout.
 
-The EPUB page is centered with maximum width (740 CSS px), top padding (24 CSS px), bottom padding (70 CSS px), and selectable side margins (12, 28, or 44 CSS px; default 28). Paragraph spacing is selectable (.5, 1, or 1.5em), with optional justified alignment. Images fit its width; tables scroll horizontally and preformatted text wraps. There is no established character-count measure. The lookup body scrolls between a fixed word/pronunciation/close header, stable tabs, and the save footer when a translation can be saved; compact height intentionally reduces the visible body.
+The EPUB page is centered with maximum body width (740 CSS px), effective top padding (20 CSS px), bottom padding (24 CSS px), and selectable side margins (12, 28, or 44 CSS px; default 28). A fixed viewport clips a single page of a fixed-height, multi-column content container. Its column width is the centered body width minus the chosen side margins; the column stride is the WebView viewport width. Usable column height subtracts the top and bottom padding. Paragraph spacing is selectable (.5, 1, or 1.5em), with optional justified alignment. Images fit the content width and usable page height; tables scroll horizontally and preformatted text wraps. There is no established character-count measure. The lookup body scrolls between a fixed word/pronunciation/close header, stable tabs, and the save footer when a translation can be saved; compact height intentionally reduces the visible body.
 
 **The Navigation Width Rule.** Use the existing compact bar / expanded rail boundary; do not copy the compact bar onto the expanded layout.
 
-Insets are managed across native scaffolds and activity setup, with a reader navigation-bar inset. The library Scaffold consumes the bottom safe-drawing inset, keeping the import FAB above the taskbar on expanded windows. Android 15 emulator captures cover phone, expanded window, landscape, light/dark themes, and 130% text; they do not establish physical Redmi hardware or full keyboard/gesture coverage. See VALIDATION.md for evidence and limits.
+Insets are managed across native scaffolds and activity setup, with a reader navigation-bar inset. The library Scaffold consumes the bottom safe-drawing inset, keeping the import FAB above the taskbar on expanded windows. The twelve Android 15 emulator captures in `.impeccable/review/v040` cover phone, expanded window, landscape, Papel/light/dark readers, and 130% text; they do not establish physical Redmi hardware or full keyboard/gesture coverage. See VALIDATION.md for evidence and limits.
 
 ## Elevation & Depth
 
@@ -281,7 +310,7 @@ Search, API setup, personal translation, and notes use `OutlinedTextField`. Sear
 
 ### Navigation
 
-`TopAppBar` gives screen context, with headline-medium titles outside the reader. The reader uses a compact title and chapter subtitle, back, search, appearance, contents, previous/next chapter, completion, and bookmark controls. Bottom navigation and rail share the same four labeled destinations. `PrimaryTabRow` separates contents and annotations, lookup meaning/translation from Contexto and Notas, and reading preferences into Texto, Página, and Controles. Settings subpages have a native back action. Opening optional Gemini settings from lookup uses a full-screen native dialog; back returns directly to the same open book. Transient feedback uses the `SnackbarHost` of the scaffold that owns the screen's bottom bar or FAB, keeping feedback above those controls. Deletion uses an `AlertDialog`.
+`TopAppBar` gives screen context, with headline-medium titles outside the reader. The reader uses a compact title and chapter subtitle, back, search, appearance, contents, previous/next page, progress, and bookmark controls. Its footer says “Página N de M” and “del capítulo” alongside the approximate book percentage; while layout is pending it says “Preparando páginas…”. The page arrows disable at the beginning and end of the book. The contents index retains explicit chapter jumps. Bottom navigation and rail share the same four labeled destinations. `PrimaryTabRow` separates contents and annotations, lookup meaning/translation from Contexto and Notas, and reading preferences into Texto, Página, and Controles. Settings subpages have a native back action. Opening optional Gemini settings from lookup uses a full-screen native dialog; back returns directly to the same open book. Transient feedback uses the `SnackbarHost` of the scaffold that owns the screen's bottom bar or FAB, keeping feedback above those controls. Deletion uses an `AlertDialog`.
 
 ### Book Covers
 
@@ -297,7 +326,11 @@ Google ML Kit translations carry the official, unmodified theme-appropriate Goog
 
 ### Reading Surface
 
-An isolated WebView renders reflowable content using the chosen reading background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. The reading background can follow the app or independently use Claro or Oscuro. A tap selects a word when enabled; long press uses native selection. Both feed the translation sheet through the touch/selection bridge, and native selection adds a “Traducir” action as a fallback. Saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Selection and saved highlights use paired theme container roles, blockquotes use the surface container, and dividers use the theme outline variant. The error HTML fallback uses the same background and foreground as the reading page.
+An isolated WebView renders reflowable content using the chosen reading background/foreground, bundled Literata or sans serif, reader preferences, and OS text scaling. The reading scheme can follow the app or independently use Papel, Claro, or Oscuro, and applies to both content and reader chrome. A tap selects a word when enabled; long press uses native selection. Both feed the translation sheet through the touch/selection bridge, and native selection adds a “Traducir” action as a fallback. Saved highlights are applied to page text. The native frame keeps chapter context and progress visible. Selection and saved highlights use paired theme container roles, blockquotes use the surface container, and dividers use the theme outline variant. The error HTML fallback uses the same background and foreground as the reading page.
+
+Page buttons, horizontal swipes, and WebView ArrowLeft/ArrowRight or PageUp/PageDown keys call the same single-page turn. Only a chapter boundary requests another chapter: advancing opens its first page, and reversing opens the previous chapter's last page. A nonempty text selection suppresses page turns. The engine waits for the bundled font and initially settling images, then recalculates after window resizing or later image loads. These are viewport pages within the current chapter, recalculated for the selected type, margins, and window; there is no whole-book page total or equivalence to printed page numbers.
+
+The reader saves text offsets in the sanitized chapter and restores their containing page across typography, margins, theme, rotation, and reopen. Bookmarks and annotation locations carry that offset too. Legacy positions and image-only content retain a fractional fallback; offsets are not portable CFI locators. Search highlights and opens the matching page, while internal links resolve their target fragment. Saved highlight text still uses its first exact match, an existing limitation rather than a stronger annotation-anchor guarantee.
 
 Reading preferences show a live native preview using the selected font, size, line height, background, margins, paragraph separation, and alignment. Texto owns typography; Página owns background and spacing; Controles owns tap consultation, keeping the screen on, and the gesture hint. Full-row native switches expose each control. Restablecer lectura resets these reading preferences while preserving application theme, books, and connection credentials.
 
@@ -309,12 +342,14 @@ Reading preferences show a live native preview using the selected font, size, li
 - **Do** use serif headline roles and sans serif functional type through `LectioTypography`.
 - **Do** retain the compact navigation bar and expanded navigation rail behavior.
 - **Do** keep reading preferences separate from app UI typography.
+- **Do** apply the selected reading scheme to page content and reader chrome while retaining the independent application theme.
+- **Do** turn one viewport page per navigation action and identify page counts as relative to the current chapter.
 - **Do** preserve visible translation provenance, one-time download choices, and explicit optional explanation actions in the reading context.
 - **Do** use native Material controls and their built-in interaction states.
 
 ### Don't:
 
-- **Don't** treat fallback cover colors as general app accents or reintroduce fixed warm colors into themed reader content.
+- **Don't** treat fallback cover colors as general app accents or apply the reader-only Papel palette as a global warm rebrand; warm reader colors belong to its explicitly selected paired roles.
 - **Don't** promote tiny uppercase cover labels into a reusable heading pattern.
 - **Don't** describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.
 - **Don't** introduce account UI as a prerequisite to local reading or vocabulary.

@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.4.0 — 17 de octubre de 2026
+
+- Lectura paginada con flechas y deslizamiento horizontal. Los avances recorren un capítulo página a página y solo cruzan al siguiente al llegar al final; retroceder desde su inicio abre la última página anterior.
+- Número de página y total del capítulo adaptados al tamaño de ventana, tipografía e interlineado. El índice sigue disponible para saltar capítulos.
+- Posiciones de texto persistentes para lectura, marcadores y anotaciones nuevas, con migración de las posiciones antiguas. La búsqueda y los enlaces internos abren la página que contiene el resultado.
+- Tema de lectura Papel con fondo crema amarillo suave y colores correspondientes en las barras y selección, independiente de la biblioteca.
+
 ## 0.3.0 — 16 de octubre de 2026
 
 - Significados reales de Wiktionary, con categoría gramatical, ejemplos, traducción local al español, original y atribución. Caché independiente y funcionamiento sin clave; el fallo del diccionario no bloquea la traducción.

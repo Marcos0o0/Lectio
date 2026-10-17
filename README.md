@@ -25,7 +25,8 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 ## Qué puedes hacer
 
 - Importar EPUB sin DRM mediante el selector de archivos de Android. El libro se copia al almacenamiento privado: no depende del archivo original.
-- Continuar la lectura con progreso por capítulo y posición guardados.
+- Leer página a página con flechas o deslizamientos horizontales. Al terminar un capítulo, el siguiente avance abre el próximo; retroceder desde su inicio vuelve a la última página anterior. El índice permite saltar capítulos directamente.
+- Continuar donde se dejó la lectura, con posición de texto guardada y restaurada aunque cambien letra, márgenes o tamaño de pantalla.
 - Navegar con el índice, buscar palabras o frases y crear marcadores.
 - Tocar una palabra o mantener pulsado para seleccionar una frase y abrir su traducción en una ficha inferior. La ficha separa Significado, Contexto y Notas; incluye definiciones y la oración traducida cuando corresponde.
 - Guardar vocabulario, añadir una traducción propia y escuchar el texto con la voz inglesa de Android.
@@ -34,7 +35,7 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 - Consultar minutos de lectura, días con actividad y palabras aprendidas.
 - Personalizar letra, interlineado, fondo del libro, márgenes, separación de párrafos y alineación con vista previa. Activar o desactivar la consulta al tocar, la ayuda de gestos y la pantalla encendida. Navegación con barra en teléfono y rail en pantallas amplias.
 
-La apariencia inicial es oscura, con superficies grafito y acentos azules. Si ya elegiste Claro o Sistema en Ajustes, se respeta esa elección. El lector, los menús y la selección de texto comparten los colores del tema.
+La apariencia inicial es oscura, con superficies grafito y acentos azules. Si ya elegiste Claro o Sistema en Ajustes, se respeta esa elección. En Apariencia de lectura → Página puedes elegir **Papel**, un fondo crema amarillo suave, además de Claro, Oscuro o Como la app. El fondo del libro y las barras del lector siguen esta elección; la biblioteca conserva su tema.
 
 Al abrir se incluye **A Little More Slowly**, una lectura de muestra original de Lectio, con tres capítulos en inglés. Las portadas tipográficas de reserva representan el título; no son portadas editoriales originales.
 
@@ -61,13 +62,13 @@ Es un **MVP**, no un lector EPUB certificado. Admite contenido EPUB 2/3 reflowab
 - Los enlaces del índice a secciones se agrupan por capítulo; no se reproduce cada nivel de navegación del EPUB.
 - La traducción local ofrece traducciones automáticas, no definiciones de un diccionario editorial ni explicaciones contextuales completas. Las definiciones de Wiktionary complementan esa traducción. Gemini puede ampliar el significado contextual cuando se configura; sus respuestas pueden contener errores.
 - Los subrayados se restauran buscando la primera coincidencia exacta del texto en su capítulo. Frases idénticas repetidas y selecciones que cruzan párrafos requieren anclajes más precisos en una versión posterior.
-- El progreso es aproximado por capítulo y desplazamiento, no por número de páginas editoriales.
+- Las páginas se calculan dentro de cada capítulo y cambian con la tipografía y la ventana; no son números de una edición impresa. El porcentaje del libro sigue siendo aproximado por capítulo y posición de texto. Las posiciones antiguas se recuperan por su fracción guardada; las nuevas incorporan un anclaje de texto, también en marcadores y anotaciones.
 - La búsqueda muestra hasta cinco coincidencias por capítulo, con un máximo de 100 resultados.
 - El tiempo se registra en intervalos de 10 segundos con el lector en primer plano; no detecta si estás mirando la pantalla.
 - Los libros y los datos se guardan solo en este dispositivo. No hay sincronización ni exportación; desinstalar elimina los datos.
 - Las funciones de IA necesitan conexión y un proveedor que respete el formato solicitado. No se verifican con solicitudes reales que consuman créditos.
 
-Para una siguiente fase con compatibilidad editorial completa, conviene migrar el motor a Readium y usar localizadores CFI/Readium para progreso y anotaciones.
+Para una siguiente fase con compatibilidad editorial completa, conviene migrar el motor a Readium y usar localizadores CFI/Readium para anotaciones y posiciones portables entre motores.
 
 ## Estructura
 
@@ -86,6 +87,8 @@ app/src/main/java/app/lectio/reader/
     GeminiClient.kt        Conexión personal con Gemini
     DemoBook.kt            EPUB original de muestra
   ui/                      Pantallas, tema y lector aislado
+app/src/main/assets/
+  reader-pagination.js     Páginas, anclajes de texto y búsqueda local
 app/src/test/               Pruebas del parser, datos y flujos de interfaz
 app/src/androidTest/        Regresión nativa del lector con Chromium real
 ```
@@ -96,7 +99,7 @@ Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no
 
 Resultados, capturas y pasos pendientes en dispositivo: [VALIDATION.md](VALIDATION.md).
 
-Las 21 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia y navegación Compose. Tres pruebas instrumentadas en Android 15 comprueban pulsación prolongada y toque reales, traducción con el modelo local, frases mediante rango DOM, capítulos en Chromium, reapertura, temas, configuración de Gemini y personalización persistida aplicada en Chromium. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Las capturas actuales del emulador y los límites de esta cobertura están en VALIDATION.md.
+Las 22 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia, migración de ubicaciones y navegación Compose. La suite de cuatro pruebas instrumentadas en Android 15 añade páginas de un capítulo largo, flechas y deslizamiento reales, cambios de tipografía, giro, reapertura, búsqueda y cruce de capítulos; conserva las comprobaciones de selección, traducción local, contexto, Gemini y personalización aplicada en Chromium. Las frases se seleccionan mediante rango DOM, sin validar el arrastre físico de sus tiradores. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Los resultados y capturas actuales están en VALIDATION.md.
 
 Quedan por validar en hardware: selección mediante gestos dentro del WebView, motor TTS, selector de archivos de cada fabricante, restauración tras terminar el proceso y rendimiento con libros grandes. El código está disponible en GitHub; la app aún no se ha publicado en una tienda.
 

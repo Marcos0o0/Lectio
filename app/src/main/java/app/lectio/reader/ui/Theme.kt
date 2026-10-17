@@ -39,6 +39,15 @@ internal val LectioDark = darkColorScheme(
     inverseSurface=Color(0xFFE3E7EF),inverseOnSurface=Color(0xFF2B3038),inversePrimary=Color(0xFF365F99),surfaceTint=Color(0xFFA8C7FA),
     error=Color(0xFFFFB4AB),onError=Color(0xFF690005),errorContainer=Color(0xFF93000A),onErrorContainer=Color(0xFFFFDAD6),scrim=Color.Black
 )
+// Reader-only paper palette; the application keeps its own selected appearance.
+internal val LectioPaper = LectioLight.copy(
+    primary=Color(0xFF5C5B35),onPrimary=Color(0xFFFFFFFF),primaryContainer=Color(0xFFE7E3B6),onPrimaryContainer=Color(0xFF302F13),
+    secondary=Color(0xFF675D46),onSecondary=Color(0xFFFFFFFF),secondaryContainer=Color(0xFFE8DDBA),onSecondaryContainer=Color(0xFF332C1C),
+    background=Color(0xFFF6EBCF),onBackground=Color(0xFF302B22),surface=Color(0xFFF6EBCF),onSurface=Color(0xFF302B22),
+    surfaceVariant=Color(0xFFE8DDBF),onSurfaceVariant=Color(0xFF5F5644),outline=Color(0xFF7D735B),outlineVariant=Color(0xFFCFC1A2),
+    surfaceContainerLowest=Color(0xFFFFF8E8),surfaceContainerLow=Color(0xFFF3E7CA),surfaceContainer=Color(0xFFEEE1C0),
+    surfaceContainerHigh=Color(0xFFE9DAB5),surfaceContainerHighest=Color(0xFFE4D4AA),surfaceDim=Color(0xFFE4D4AA),surfaceBright=Color(0xFFF6EBCF),surfaceTint=Color(0xFF5C5B35)
+)
 val LectioTypography = Typography(
     displaySmall=TextStyle(fontFamily=Literary,fontSize=36.sp,lineHeight=44.sp),
     headlineLarge=TextStyle(fontFamily=Literary,fontSize=32.sp,lineHeight=40.sp),

@@ -15,6 +15,7 @@ import app.lectio.reader.data.Preferences
 @Composable internal fun readingColors(p: Preferences): ColorScheme = when(p.readingTheme) {
     "Claro" -> LectioLight
     "Oscuro" -> LectioDark
+    "Papel" -> LectioPaper
     else -> MaterialTheme.colorScheme
 }
 
@@ -46,7 +47,8 @@ import app.lectio.reader.data.Preferences
             }
             1 -> {
                 Text("Fondo del libro",style=MaterialTheme.typography.titleMedium)
-                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Aplicación","Claro","Oscuro").forEach {theme -> FilterChip(selected=p.readingTheme==theme,onClick={save {current -> current.copy(readingTheme=theme)}},label={Text(if(theme=="Aplicación") "Como la app" else theme)})}}
+                FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf("Aplicación","Papel","Claro","Oscuro").forEach {theme -> FilterChip(selected=p.readingTheme==theme,onClick={save {current -> current.copy(readingTheme=theme)}},label={Text(if(theme=="Aplicación") "Como la app" else theme)})}}
+                Text("Papel usa un fondo crema suave para leer con menos blanco en pantalla.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                 Text("Márgenes laterales",style=MaterialTheme.typography.titleMedium)
                 FlowRow(horizontalArrangement=Arrangement.spacedBy(8.dp)) {listOf(12 to "Estrechos",28 to "Normales",44 to "Amplios").forEach {(value,label) -> FilterChip(selected=p.margin==value,onClick={save {current -> current.copy(margin=value)}},label={Text(label)})}}
                 Text("Entre párrafos",style=MaterialTheme.typography.titleMedium)
@@ -56,7 +58,7 @@ import app.lectio.reader.data.Preferences
             2 -> {
                 PreferenceSwitch("Consultar al tocar","Un toque abre la palabra. Si lo desactivas, mantén pulsado para consultar.",p.tapToTranslate) {value -> save {current -> current.copy(tapToTranslate=value)}}
                 PreferenceSwitch("Mantener pantalla encendida","Mientras el libro esté abierto.",p.keepScreenOn) {value -> save {current -> current.copy(keepScreenOn=value)}}
-                PreferenceSwitch("Mostrar ayuda de gestos","Recuerda cómo consultar palabras al leer.",p.showReadingHint) {value -> save {current -> current.copy(showReadingHint=value)}}
+                PreferenceSwitch("Mostrar ayuda de gestos","Recuerda cómo pasar páginas y consultar palabras.",p.showReadingHint) {value -> save {current -> current.copy(showReadingHint=value)}}
             }
         }
         HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "generatedAt": "2026-10-16T22:38:41Z",
+  "generatedAt": "2026-10-17T18:36:31Z",
   "title": "Design System: Lectio",
   "extensions": {
     "colorMeta": {
@@ -59,6 +59,102 @@
       "on-surface-dark": {
         "role": "neutral",
         "displayName": "Cool light ink"
+      },
+      "primary-paper": {
+        "role": "primary",
+        "displayName": "Muted olive action"
+      },
+      "on-primary-paper": {
+        "role": "primary",
+        "displayName": "White action ink"
+      },
+      "primary-container-paper": {
+        "role": "primary",
+        "displayName": "Pale olive selection"
+      },
+      "on-primary-container-paper": {
+        "role": "primary",
+        "displayName": "Deep olive selection ink"
+      },
+      "secondary-paper": {
+        "role": "secondary",
+        "displayName": "Warm brown secondary"
+      },
+      "on-secondary-paper": {
+        "role": "secondary",
+        "displayName": "White secondary ink"
+      },
+      "secondary-container-paper": {
+        "role": "secondary",
+        "displayName": "Cream highlight"
+      },
+      "on-secondary-container-paper": {
+        "role": "secondary",
+        "displayName": "Deep brown highlight ink"
+      },
+      "background-paper": {
+        "role": "neutral",
+        "displayName": "Soft cream paper"
+      },
+      "on-background-paper": {
+        "role": "neutral",
+        "displayName": "Dark brown page ink"
+      },
+      "surface-paper": {
+        "role": "neutral",
+        "displayName": "Soft cream reader chrome"
+      },
+      "on-surface-paper": {
+        "role": "neutral",
+        "displayName": "Dark brown chrome ink"
+      },
+      "surface-variant-paper": {
+        "role": "neutral",
+        "displayName": "Warm cream variant"
+      },
+      "on-surface-variant-paper": {
+        "role": "neutral",
+        "displayName": "Brown supporting ink"
+      },
+      "outline-paper": {
+        "role": "neutral",
+        "displayName": "Warm brown outline"
+      },
+      "outline-variant-paper": {
+        "role": "neutral",
+        "displayName": "Cream divider"
+      },
+      "surface-container-lowest-paper": {
+        "role": "neutral",
+        "displayName": "Pale paper container"
+      },
+      "surface-container-low-paper": {
+        "role": "neutral",
+        "displayName": "Light paper container"
+      },
+      "surface-container-paper": {
+        "role": "neutral",
+        "displayName": "Paper container"
+      },
+      "surface-container-high-paper": {
+        "role": "neutral",
+        "displayName": "Warm paper container"
+      },
+      "surface-container-highest-paper": {
+        "role": "neutral",
+        "displayName": "Deep paper container"
+      },
+      "surface-dim-paper": {
+        "role": "neutral",
+        "displayName": "Dim paper"
+      },
+      "surface-bright-paper": {
+        "role": "neutral",
+        "displayName": "Bright paper"
+      },
+      "surface-tint-paper": {
+        "role": "primary",
+        "displayName": "Muted olive tint"
       }
     },
     "typographyMeta": {
@@ -140,14 +236,14 @@
     {
       "name": "Adaptive Navigation",
       "kind": "nav",
-      "description": "Native NavigationBar below 600dp and NavigationRail from 600dp; four labeled destinations. Hidden during reading. Settings groups lead to Lectura, Diccionario y traducción, and Gemini. PrimaryTabRow separates lookup tasks and reading preferences. Optional Gemini settings from lookup opens a full-screen native dialog; back returns to the same book. Selection, ripple and focus stay Material defaults. Library bottom safe-drawing insets keep its import FAB above the expanded-window taskbar. Native component: no HTML/CSS preview.",
+      "description": "Native NavigationBar below 600dp and NavigationRail from 600dp; four labeled destinations. Hidden during reading. Reader page arrows, horizontal swipes, and WebView ArrowLeft/ArrowRight or PageUp/PageDown share a one-page turn; only boundaries cross chapters, reversing to the preceding last page. Arrows disable at the book limits; the index retains chapter jumps and the footer labels page counts as relative to the chapter. Settings groups lead to Lectura, Diccionario y traducción, and Gemini. PrimaryTabRow separates lookup tasks and reading preferences. Optional Gemini settings from lookup opens a full-screen native dialog; back returns to the same book. Selection, ripple and focus stay Material defaults. Library bottom safe-drawing insets keep its import FAB above the expanded-window taskbar. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
     {
       "name": "Selection and Action Chips",
       "kind": "chip",
-      "description": "Native FilterChip for filters, application theme, reading font/background, margins, and paragraph spacing; AssistChip for explicit Gemini explanation, grammar, and simpler-English actions in Contexto, disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
+      "description": "Native FilterChip for filters, application theme, reading font/background (Como la app, Papel, Claro, Oscuro), margins, and paragraph spacing; AssistChip for explicit Gemini explanation, grammar, and simpler-English actions in Contexto, disabled during lookup. FlowRow wraps variable groups. Native component: no HTML/CSS preview.",
       "html": "",
       "css": ""
     },
@@ -170,19 +266,20 @@
     {
       "name": "Reading Surface",
       "kind": "custom",
-      "description": "Isolated Android WebView with reading background following the app or independently Claro/Oscuro; bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height. Android fontScale drives WebView textZoom. Centered page width up to 740 CSS px; margins 12/28/44 CSS px, paragraph spacing .5/1/1.5em and optional justification. Tap consultation is optional; long press and native Traducir remain available. Keep-screen-on and gesture-hint preferences are separate. A live native preview shares Texto/Página/Controles preferences with the fully expanded scrollable appearance sheet. Reading reset preserves app theme, books and credentials. Selection/highlights use paired theme containers; blockquotes use surface-container, dividers use outline-variant, and error fallback uses current page colors. h2 retains flow-root, 1em top padding, and .7em bottom margin. Native component: no fabricated HTML/CSS preview.",
+      "description": "Isolated Android WebView with reading scheme following the app or independently Papel/Claro/Oscuro, applied to content and native reader chrome; the app/library theme stays independent. LectioPaper copies LectioLight with the frontmatter paper overrides; tertiary, inverse, error and scrim roles inherit light values. Bundled offline Literata or sans serif, 16–32 CSS px preference and 1.4–2.2 line height; Android fontScale drives textZoom. Fixed-height columns show one viewport page at a time, centered body up to 740 CSS px, effective top/bottom padding 20/24 CSS px and side margins 12/28/44 CSS px. Paragraph spacing .5/1/1.5em and optional justification. Font readiness, image loads and resize recalculate pages with a text offset anchor; typography, margins, theme, rotation and reopen restore the containing page. Bookmarks and annotation locations carry text offsets; legacy and image-only locations use a fraction. No whole-book page total, printed-page equivalence or CFI guarantee. Search opens the matching page and internal links resolve fragments; saved highlights still use the first exact text match. Tap consultation is optional; long press and native Traducir remain available. Keep-screen-on and gesture-hint preferences are separate. A live native preview shares Texto/Página/Controles preferences with the fully expanded scrollable appearance sheet. Reading reset preserves app theme, books and credentials. Selection/highlights use paired theme containers; blockquotes use surface-container, dividers use outline-variant, and error fallback uses current page colors. h2 retains flow-root, 1em top padding, and .7em bottom margin. Native component: no fabricated HTML/CSS preview.",
       "html": "",
       "css": ""
     }
   ],
   "narrative": {
     "northStar": "A quiet reading room",
-    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word opens translation and real dictionary meanings in a native sheet, with separate context and notes tabs; selecting a phrase opens translation. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
+    "overview": "Lectio pairs graphite surfaces, slate layers, and soft blue actions with literary headings and clear native controls. Dark is the initial theme; explicit Claro and Sistema preferences remain available and persisted. Reading and contextual understanding share one space: tapping a word opens translation and real dictionary meanings in a native sheet, with separate context and notes tabs; selecting a phrase opens translation. The library asks “¿Qué te gustaría leer?” without promotional support copy. Local translation needs a one-time language download; Gemini explanations stay behind explicit optional actions. Local use requires no account.\n\nThe reader adds an explicitly selected Papel palette: soft cream pages, dark brown ink, and muted olive actions continue through its native frame. This reading-only choice leaves the library and application theme independent. Reading advances one viewport page at a time, retaining text location as type and window dimensions change.\n\nThis is a code-led record of the native Android Compose implementation, not a reference composition. Compose dimensions use dp and text uses sp; the isolated EPUB WebView has its own CSS reading surface. Native components in the JSON sidecar are descriptive records, not HTML/CSS previews. Token frontmatter is normative; framework defaults remain owned by Material 3, and implementation limitations below are not new design rules.",
     "keyCharacteristics": [
       "Modern graphite dark surfaces, slate containers, soft blue actions, and a cool light scheme.",
       "Serif literary headings with sans serif functional text.",
       "Material 3 controls, tonal containers, and native modal sheets.",
       "Adjustable reading type, page and controls, with a live preview and visible dictionary/translation provenance.",
+      "Sequential viewport pages and an optional Papel reading palette shared by content and reader chrome.",
       "Four destinations that adapt from bottom navigation to a rail."
     ],
     "rules": [
@@ -207,11 +304,13 @@
       "Do use serif headline roles and sans serif functional type through `LectioTypography`.",
       "Do retain the compact navigation bar and expanded navigation rail behavior.",
       "Do keep reading preferences separate from app UI typography.",
+      "Do apply the selected reading scheme to page content and reader chrome while retaining the independent application theme.",
+      "Do turn one viewport page per navigation action and identify page counts as relative to the current chapter.",
       "Do preserve visible translation provenance, one-time download choices, and explicit optional explanation actions in the reading context.",
       "Do use native Material controls and their built-in interaction states."
     ],
     "donts": [
-      "Don't treat fallback cover colors as general app accents or reintroduce fixed warm colors into themed reader content.",
+      "Don't treat fallback cover colors as general app accents or apply the reader-only Papel palette as a global warm rebrand; warm reader colors belong to its explicitly selected paired roles.",
       "Don't promote tiny uppercase cover labels into a reusable heading pattern.",
       "Don't describe framework defaults as custom Lectio shadow, shape, motion, or error tokens.",
       "Don't introduce account UI as a prerequisite to local reading or vocabulary.",

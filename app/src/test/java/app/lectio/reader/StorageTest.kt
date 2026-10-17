@@ -30,16 +30,18 @@ class StorageTest {
         val context=ApplicationProvider.getApplicationContext<Context>()
         context.deleteDatabase("lectio.db")
         val db=LibraryDb(context)
-        val book=Book("test","Book","Author","file",null,listOf(Chapter("one","One"),Chapter("two","Two")),1,.6f)
+        val book=Book("test","Book","Author","file",null,listOf(Chapter("one","One"),Chapter("two","Two")),1,.6f,textOffset=945)
         db.save(book)
         db.save(Word("linger","perdurar",context="A scent lingers.",dictionarySource="https://en.wiktionary.org/wiki/linger#English",dictionaryLicense="https://creativecommons.org/licenses/by-sa/4.0/"))
-        db.annotate(book.id,1,.6f,"a sentence","my note","highlight")
+        db.annotate(book.id,1,.6f,"a sentence","my note","highlight",945)
         db.cache("key",Lookup("linger","perdurar",contextTranslation="Un aroma perdura."))
         db.cacheDictionary("linger",DictionaryEntry("linger",senses=listOf(WordSense("verb","To stay.",spanish="Permanecer."))))
         db.addReading(10);db.addReading(20)
         db.close()
         val reopened=LibraryDb(context)
         assertEquals(.8f,reopened.books().single().progress,.001f)
+        assertEquals(945,reopened.books().single().textOffset)
+        assertEquals(945,reopened.annotations("test").single().textOffset)
         assertEquals("perdurar",reopened.words().single().translation)
         assertEquals("https://en.wiktionary.org/wiki/linger#English",reopened.words().single().dictionarySource)
         assertEquals("my note",reopened.annotations("test").single().note)
@@ -59,9 +61,28 @@ class StorageTest {
         assertEquals(24,store.load().fontSize)
         assertEquals("Aplicación",store.load().readingTheme)
         assertTrue(store.load().tapToTranslate)
-        val settings=store.load().copy(readingTheme="Claro",margin=44,paragraphSpacing=1.5f,justified=true,keepScreenOn=true,tapToTranslate=false,showReadingHint=false,dictionaryEnabled=false)
+        val settings=store.load().copy(readingTheme="Papel",margin=44,paragraphSpacing=1.5f,justified=true,keepScreenOn=true,tapToTranslate=false,showReadingHint=false,dictionaryEnabled=false)
         store.save(settings)
         assertEquals(settings,SettingsStore(context).load())
         context.getSharedPreferences("settings",Context.MODE_PRIVATE).edit().clear().apply()
+    }
+    @Test fun versionOneDatabaseMigratesWithoutLosingOldLocations() {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        context.deleteDatabase("lectio.db")
+        android.database.sqlite.SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath("lectio.db"),null).use {old ->
+            old.execSQL("CREATE TABLE books(id TEXT PRIMARY KEY, payload TEXT NOT NULL)")
+            old.execSQL("CREATE TABLE annotations(id INTEGER PRIMARY KEY AUTOINCREMENT, book TEXT NOT NULL, chapter INTEGER NOT NULL, position REAL NOT NULL, text TEXT NOT NULL, note TEXT NOT NULL, type TEXT NOT NULL)")
+            old.execSQL("INSERT INTO books VALUES(?,?)",arrayOf("legacy","""{"id":"legacy","title":"Old book","author":"Author","file":"book.epub","chapters":[{"path":"one","title":"One"}],"position":0.4}"""))
+            old.execSQL("INSERT INTO annotations(book,chapter,position,text,note,type) VALUES('legacy',0,0.4,'Old place','Keep this','bookmark')")
+            old.version=1
+        }
+        LibraryDb(context).use {db ->
+            assertEquals(-1,db.books().single().textOffset)
+            assertEquals(.4f,db.books().single().position,.001f)
+            assertEquals(-1,db.annotations("legacy").single().textOffset)
+            assertEquals("Keep this",db.annotations("legacy").single().note)
+            db.annotate("legacy",0,.5f,"New place","","bookmark",500)
+            assertEquals(500,db.annotations("legacy").last().textOffset)
+        }
     }
 }

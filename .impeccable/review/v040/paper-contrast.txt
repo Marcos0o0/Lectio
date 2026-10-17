@@ -1,0 +1,15 @@
+onBackground/background: 11,85:1
+onSurface/surface: 11,85:1
+onSurfaceVariant/surface: 6,10:1
+onSurfaceVariant/surfaceContainerHigh: 5,23:1
+onPrimary/primary: 6,99:1
+onPrimaryContainer/primaryContainer: 10,42:1
+onSecondary/secondary: 6,50:1
+onSecondaryContainer/secondaryContainer: 10,20:1
+onTertiary/tertiary: 6,25:1
+onTertiaryContainer/tertiaryContainer: 10,62:1
+onError/error: 6,46:1
+onErrorContainer/errorContainer: 13,26:1
+onSurfaceVariant/surfaceVariant: 5,35:1
+outline/surface: 3,96:1
+Papel: 13 pares de texto >=4.5:1 y contorno >=3:1.

@@ -5,7 +5,7 @@ data class Book(
     val id: String, val title: String, val author: String, val file: String,
     val cover: String?, val chapters: List<Chapter>, val chapter: Int = 0,
     val position: Float = 0f, val lastRead: Long = 0L, val added: Long = System.currentTimeMillis(),
-    val demo: Boolean = false
+    val demo: Boolean = false, val textOffset: Int = -1
 ) {
     val progress: Float get() = if (chapters.isEmpty()) 0f else ((chapter + position) / chapters.size).coerceIn(0f, 1f)
 }
@@ -17,7 +17,7 @@ data class Word(
     val dictionarySource: String = "", val dictionaryLicense: String = ""
 )
 data class Annotation(val id: Long, val bookId: String, val chapter: Int, val position: Float,
-    val text: String, val note: String, val type: String)
+    val text: String, val note: String, val type: String, val textOffset: Int = -1)
 data class Selection(val text: String, val context: String = "")
 data class Lookup(val original: String, val translation: String, val definition: String = "",
     val example: String = "", val synonyms: String = "", val level: String = "",
