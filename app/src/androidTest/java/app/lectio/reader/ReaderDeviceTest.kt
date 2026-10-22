@@ -27,6 +27,11 @@ class ReaderDeviceTest {
     @get:Rule val activity=ActivityScenarioRule(MainActivity::class.java)
     private val instrumentation get()=InstrumentationRegistry.getInstrumentation()
     private val automation get()=instrumentation.uiAutomation
+    private val root: AccessibilityNodeInfo? get() {
+        // Compose may reuse semantic IDs after a theme change; do not query a cached screen.
+        if(android.os.Build.VERSION.SDK_INT>=33) automation.clearCache()
+        return automation.rootInActiveWindow
+    }
 
     private fun await(description: String, timeout: Long = 30_000, condition: () -> Boolean) {
         val deadline=SystemClock.elapsedRealtime()+timeout
@@ -44,11 +49,11 @@ class ReaderDeviceTest {
         return null
     }
 
-    private fun textNode(text: String)=findNode(automation.rootInActiveWindow) {it.text?.toString()==text}
+    private fun textNode(text: String)=findNode(root) {it.text?.toString()==text}
     private fun tap(text: String? = null, description: String? = null) {
         val label=text ?: description.orEmpty()
         await("Control activado: $label") {
-            var target=findNode(automation.rootInActiveWindow) {
+            var target=findNode(root) {
                 if(text!=null) it.text?.toString()==text else it.contentDescription?.toString()==description
             }
             while(target!=null&&!target.isClickable) target=target.parent
@@ -66,9 +71,17 @@ class ReaderDeviceTest {
         }
     }
     private fun scrollTo(text: String) {
+        // Navigation can retain a list's scroll position; the target may be above it.
+        for(i in 0 until 20) {
+            if(textNode(text)?.isVisibleToUser==true) return
+            val scroll=findNode(root) {it.isScrollable} ?: break
+            if(scroll.actionList.none {it.id==AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD}) break
+            scroll.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD)
+            SystemClock.sleep(100)
+        }
         repeat(20) {
             if(textNode(text)?.isVisibleToUser==true) return
-            val scroll=findNode(automation.rootInActiveWindow) {it.isScrollable}
+            val scroll=findNode(root) {it.isScrollable}
             scroll?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_FORWARD)
             SystemClock.sleep(300)
         }
@@ -104,8 +117,14 @@ class ReaderDeviceTest {
         automation.waitForIdle(150,5000)
     }
     private fun openBook() {
-        tap(text="A Little More Slowly")
-        await("Lector visible") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Volver a la biblioteca"}!=null}
+        try {
+            await("Biblioteca preparada") {textNode("Lectio")!=null}
+            automation.waitForIdle(150,5000)
+            scrollTo("A Little More Slowly")
+            tap(text="A Little More Slowly")
+        } catch(e: AssertionError) {capture("phone-open-book-test-failure");throw e}
+
+        await("Lector visible") {findNode(root) {it.contentDescription=="Volver a la biblioteca"}!=null}
     }
     private fun waitForChapter(fragment: String) {
         await("Contenido del capítulo: $fragment") {javascript("document.body && document.body.innerText.includes(${org.json.JSONObject.quote(fragment)})")=="true"}
@@ -124,7 +143,7 @@ class ReaderDeviceTest {
     private fun touchWord(word: String, longPress: Boolean) {
         await("Lector con foco táctil") {var focused=false;activity.scenario.onActivity {focused=it.hasWindowFocus()};focused}
         automation.waitForIdle(150,5000)
-        val raw=javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf(${org.json.JSONObject.quote(word)});let r=document.createRange();r.setStart(n,i);r.setEnd(n,i+${word.length});let b=r.getBoundingClientRect();return JSON.stringify({x:b.x+b.width/2,y:b.y+b.height/2,scale:devicePixelRatio})})()""")
+        val raw=javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf(${org.json.JSONObject.quote(word)});let r=document.createRange();r.setStart(n,i);r.setEnd(n,i+${word.length});let b=r.getClientRects()[0]||r.getBoundingClientRect();return JSON.stringify({x:b.x+b.width/2,y:b.y+b.height/2,scale:devicePixelRatio})})()""")
         val position=org.json.JSONObject(org.json.JSONTokener(raw).nextValue() as String)
         val location=IntArray(2)
         activity.scenario.onActivity {host -> requireNotNull(findWebView(host.window.decorView)).getLocationOnScreen(location)}
@@ -139,10 +158,79 @@ class ReaderDeviceTest {
     }
     private fun closeLookup() {
         tap(description="Cerrar consulta")
-        await("Ficha cerrada") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Cerrar consulta"}==null}
+        await("Ficha cerrada") {findNode(root) {it.contentDescription=="Cerrar consulta"}==null}
         await("Lector con foco") {var focused=false;activity.scenario.onActivity {focused=it.hasWindowFocus()};focused}
         automation.waitForIdle(150,5000)
         await("Selección retirada") {javascript("getSelection().toString()")=="\"\""}
+    }
+    private fun enterImmersive() {
+        tap(description="Leer a pantalla completa")
+        await("Pantalla completa disponible") {
+            // Android's first-use education window consumes touches until acknowledged.
+            val education=textNode("Got it") ?: textNode("Entendido")
+            if(education!=null) {education.performAction(AccessibilityNodeInfo.ACTION_CLICK);false}
+            else findNode(root) {it.contentDescription=="Salir de pantalla completa"}!=null&&findNode(root) {it.contentDescription=="Página siguiente"}==null
+        }
+        automation.waitForIdle(300,5000)
+    }
+
+    @Test fun spanishWordsResolveRealDefinitionsAndKeepTheChosenLanguage() {
+        val context=instrumentation.targetContext
+        val file=File(context.cacheDir,"spanish-test.epub")
+        java.util.zip.ZipOutputStream(file.outputStream()).use {zip ->
+            fun entry(path: String,text: String) {zip.putNextEntry(java.util.zip.ZipEntry(path));zip.write(text.toByteArray());zip.closeEntry()}
+            entry("META-INF/container.xml","""<container><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>""")
+            entry("content.opf","""<package><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Lectura en español</dc:title><dc:language>es-CL</dc:language></metadata><manifest><item id="one" href="one.xhtml" media-type="application/xhtml+xml"/></manifest><spine><itemref idref="one"/></spine></package>""")
+            entry("one.xhtml","<html><head><title>Palabras</title></head><body><h1>Palabras</h1><p>Patriarcado feminista ensombrecieron despolitizacion metalinguisticas sesgos. Los sesgos de la autora aparecen en la lectura.</p></body></html>")
+        }
+        fun vm(action: (ReaderViewModel)->Unit) {activity.scenario.onActivity {action(androidx.lifecycle.ViewModelProvider(it)[ReaderViewModel::class.java])}}
+        fun current(): ReaderState {lateinit var state: ReaderState;vm {state=it.state.value};return state}
+        vm {it.importBook(android.net.Uri.fromFile(file))}
+        await("Libro español disponible") {current().books.any {it.title=="Lectura en español"}}
+        scrollTo("Lectura en español")
+        tap(text="Lectura en español")
+        waitForChapter("Patriarcado feminista")
+        enterImmersive()
+        await("Pantalla completa") {findNode(root) {it.contentDescription=="Salir de pantalla completa"}!=null&&findNode(root) {it.contentDescription=="Página siguiente"}==null}
+        automation.waitForIdle(300,5000)
+        for(word in listOf("Patriarcado","feminista","ensombrecieron","despolitizacion","metalinguisticas","sesgos")) {
+            touchWord(word,false)
+            await("Palabra seleccionada por toque: $word") {current().selection?.text==word}
+            await("Significado español real: $word",60_000) {current().let {
+                if(it.definitionError!=null) throw AssertionError("$word: ${it.definitionError}; consulta directa",runCatching {app.lectio.reader.data.DictionaryClient.fetch(word.lowercase(),"es")}.exceptionOrNull())
+                it.dictionary!=null&&!it.definitionLoading
+            }}
+            val state=current()
+            assertEquals("es",state.lookupLanguage)
+            assertNull(state.lookup)
+            assertFalse(state.translationNeedsDownload)
+            assertEquals("es",state.dictionary!!.definitionLanguage)
+            assertTrue(state.dictionary!!.senses.first().definition.isNotBlank())
+            if(word=="feminista") {
+                assertTrue(state.dictionary!!.senses.any {it.definition.contains("feminismo")})
+                assertTrue(state.dictionary!!.relatedWords.contains("feminismo"))
+                assertFalse(state.dictionary!!.senses.any {it.definition.contains("hispana")})
+                capture("phone-spanish-feminista-android15")
+            }
+            if(word=="ensombrecieron") {assertEquals("ensombrecer",state.dictionary!!.lemma);assertTrue(state.dictionary!!.senses.first().partOfSpeech.startsWith("Verbo"));capture("phone-spanish-verb-android15")}
+            if(word=="despolitizacion") assertEquals("despolitización",state.dictionary!!.word)
+            if(word=="metalinguisticas") assertEquals("metalingüístico",state.dictionary!!.lemma)
+            if(word=="sesgos") {
+                tap(text=if(state.words.any {it.text=="sesgos"}) "Actualizar vocabulario" else "Guardar en vocabulario")
+                await("Guardar definición sin traducir ni conectar Gemini") {current().words.any {it.text=="sesgos"&&it.language=="es"&&it.translation==state.dictionary!!.senses.first().definition}}
+                tap(text="Inglés");await("Idioma inglés elegido") {current().lookupLanguage=="en"}
+                tap(text="Español");await("Definición española recuperada de caché") {current().dictionary?.cached==true&&current().lookupLanguage=="es"}
+            }
+            closeLookup()
+        }
+        tap(description="Salir de pantalla completa")
+        tap(description="Volver a la biblioteca");library();tap(text="Lectura en español")
+        waitForChapter("Patriarcado feminista")
+        touchWord("sesgos",true)
+        await("Idioma por libro conservado") {current().dictionary?.cached==true&&current().current?.dictionaryLanguage=="es"}
+        capture("phone-spanish-cached-android15")
+        closeLookup()
+        tap(description="Volver a la biblioteca");library()
     }
 
     @Test fun bookContentSelectionAndReopeningUseRealWebView() {
@@ -159,12 +247,12 @@ class ReaderDeviceTest {
         capture("phone-reader-dark-android15")
         touchWord("precious",true)
         await("Ficha tras mantener pulsado") {textNode("precious")!=null}
-        await("Traducción o descarga disponible") {textNode("Descargar por Wi-Fi")!=null||findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        await("Traducción o descarga disponible") {textNode("Descargar por Wi-Fi")!=null||findNode(root) {it.contentDescription=="Powered by Google Translate"}!=null}
         if(textNode("Descargar por Wi-Fi")!=null) {
             capture("phone-download-android15")
             tap(text="Descargar usando datos móviles")
         }
-        await("Traducción del modelo local",180_000) {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        await("Traducción del modelo local",180_000) {findNode(root) {it.contentDescription=="Powered by Google Translate"}!=null}
         await("Significado real del diccionario",60_000) {textNode("1. Adjetivo")!=null}
         capture("phone-lookup-dark-android15")
         tap(text="Contexto")
@@ -172,18 +260,18 @@ class ReaderDeviceTest {
         capture("phone-context-dark-android15")
         tap(text="Notas");await("Anotar fragmento") {textNode("Guardar subrayado")!=null};capture("phone-notes-dark-android15")
         tap(text="Contexto");tap(text="Conectar Gemini")
-        await("Conexión sin abandonar el libro") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Volver al libro"}!=null}
+        await("Conexión sin abandonar el libro") {findNode(root) {it.contentDescription=="Volver al libro"}!=null}
         capture("phone-gemini-from-reader-android15")
         tap(description="Volver al libro");waitForChapter("For a few precious minutes")
         touchWord("minutes",false)
         await("Ficha tras tocar palabra") {textNode("minutes")!=null}
-        await("Traducción de otra palabra") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        await("Traducción de otra palabra") {findNode(root) {it.contentDescription=="Powered by Google Translate"}!=null}
         tap(text="Contexto");await("Contexto de otra palabra") {textNode("En esta oración")!=null}
         closeLookup()
         // Phrase handles remain native; this range checks the multiword payload and real model.
         assertEquals("true",javascript("""(function(){let n=document.querySelector('p').firstChild,i=n.textContent.indexOf('For a few precious minutes'),r=document.createRange();r.setStart(n,i);r.setEnd(n,n.textContent.length);let s=getSelection();s.removeAllRanges();s.addRange(r);document.dispatchEvent(new Event('selectionchange'));return true})()"""))
         await("Ficha de frase") {textNode("Traducción")!=null}
-        await("Traducción de frase con modelo") {findNode(automation.rootInActiveWindow) {it.contentDescription=="Powered by Google Translate"}!=null}
+        await("Traducción de frase con modelo") {findNode(root) {it.contentDescription=="Powered by Google Translate"}!=null}
         capture("phone-phrase-android15")
         closeLookup()
         tap(description="Índice y anotaciones");tap(text="A word worth keeping")
@@ -214,7 +302,7 @@ class ReaderDeviceTest {
         tap(text="Página");tap(text="Amplios");tap(text="Más");chooseTheme("Claro")
         scrollTo("Texto justificado");tap(text="Texto justificado");capture("phone-reading-page-android15")
         // Return to the tab row after inspecting the lower page controls.
-        repeat(5) {findNode(automation.rootInActiveWindow) {it.isScrollable}?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);SystemClock.sleep(100)}
+        repeat(5) {findNode(root) {it.isScrollable}?.performAction(AccessibilityNodeInfo.ACTION_SCROLL_BACKWARD);SystemClock.sleep(100)}
         tap(text="Controles");scrollTo("Consultar al tocar");tap(text="Consultar al tocar");scrollTo("Mantener pantalla encendida");tap(text="Mantener pantalla encendida");scrollTo("Mostrar ayuda de gestos");tap(text="Mostrar ayuda de gestos")
         capture("phone-reading-controls-android15")
         activity.scenario.recreate()
@@ -247,7 +335,12 @@ class ReaderDeviceTest {
             entry("two.xhtml","<html><head><title>The last chapter</title></head><body><h1>The last chapter</h1><p>Here is the final page of our test book.</p></body></html>")
         }
         activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].importBook(android.net.Uri.fromFile(file))}
-        await("Libro largo importado") {textNode("Pagination test")!=null}
+        await("Libro largo importado") {
+            var imported=false
+            activity.scenario.onActivity {host -> imported=androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].state.value.books.any {it.title=="Pagination test"}}
+            imported
+        }
+        scrollTo("Pagination test")
         tap(text="Pagination test")
         activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].chapter(0)}
         fun pageState(): org.json.JSONObject {
@@ -259,6 +352,15 @@ class ReaderDeviceTest {
         assertEquals(0,pageState().getInt("page"))
         tap(description="Página siguiente");await("Una sola página adelante") {pageState().getInt("page")==1}
         assertEquals(0,chapterIndex())
+        val initialAnchor=pageState().getInt("anchor")
+        enterImmersive()
+        await("Entrada inmersiva conserva texto y oculta barras",15_000) {
+            var hidden=false
+            activity.scenario.onActivity {host -> hidden=androidx.core.view.ViewCompat.getRootWindowInsets(host.window.decorView)?.isVisible(androidx.core.view.WindowInsetsCompat.Type.systemBars())==false}
+            hidden&&pageState().getInt("anchor")==initialAnchor&&findNode(root) {it.contentDescription=="Salir de pantalla completa"}!=null&&findNode(root) {it.contentDescription=="Página siguiente"}==null
+        }
+        assertNull(findNode(root) {it.contentDescription=="Página siguiente"})
+        capture("phone-immersive-dark-android15")
         // Native horizontal swipe, not a synthetic DOM gesture.
         val location=IntArray(2);var width=0;var height=0
         activity.scenario.onActivity {host -> requireNotNull(findWebView(host.window.decorView)).let {it.getLocationOnScreen(location);width=it.width;height=it.height}}
@@ -269,8 +371,15 @@ class ReaderDeviceTest {
             try {automation.injectInputEvent(event,true)} finally {event.recycle()}
             SystemClock.sleep(16)
         }
-        await("Deslizar avanza una página") {pageState().getInt("page")==2}
+        await("Deslizar avanza una página inmersiva") {pageState().getInt("anchor")>initialAnchor}
         assertEquals(0,chapterIndex())
+        assertTrue(automation.performGlobalAction(android.accessibilityservice.AccessibilityService.GLOBAL_ACTION_BACK))
+        await("Atrás sale de inmersivo sin cerrar libro") {findNode(root) {it.contentDescription=="Página siguiente"}!=null}
+        // Returning to the smaller viewport reflows around the text, not the old page number.
+        javascript("window.lectioRestore(0,-1)")
+        await("Inicio del capítulo") {pageState().getInt("page")==0}
+        tap(description="Página siguiente");await("Página uno") {pageState().getInt("page")==1}
+        tap(description="Página siguiente");await("Página dos") {pageState().getInt("page")==2}
         tap(description="Página anterior");await("Regreso a la página previa") {pageState().getInt("page")==1}
         val saved=pageState().getInt("anchor")
         assertTrue(saved>0)
@@ -282,6 +391,9 @@ class ReaderDeviceTest {
         await("Fondo Papel y lugar conservado") {javascript("getComputedStyle(document.documentElement).backgroundColor")=="\"rgb(246, 235, 207)\""&&pageState().getInt("anchor")==saved}
         assertEquals(saved,pageState().getInt("anchor"))
         capture("phone-paper-page-android15")
+        enterImmersive()
+        await("Papel inmersivo conserva texto") {pageState().getInt("anchor")==saved}
+        capture("phone-immersive-paper-android15")
         val portraitWidth=javascript("innerWidth")
         try {
             assertTrue(automation.setRotation(android.app.UiAutomation.ROTATION_FREEZE_90))
@@ -289,6 +401,8 @@ class ReaderDeviceTest {
             await("Mismo texto tras girar") {javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
         } finally {automation.setRotation(android.app.UiAutomation.ROTATION_FREEZE_0)}
         await("Regreso a vertical conservando texto") {javascript("innerWidth")==portraitWidth&&javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
+        tap(description="Salir de pantalla completa")
+        await("Lugar al salir de pantalla completa") {pageState().getInt("anchor")==saved}
         tap(description="Volver a la biblioteca");library();tap(text="Pagination test")
         await("Lugar restaurado al reabrir") {javascript("window.lectioPage && window.lectioPage().anchor===$saved")=="true"}
         // Search and fragment navigation choose the containing page, without selecting for lookup.
@@ -303,7 +417,7 @@ class ReaderDeviceTest {
         await("Cruce al siguiente capítulo") {chapterIndex()==1&&pageState().getInt("page")==0}
         javascript("window.lectioRestore(1,-1)")
         await("Fin del libro sin avance disponible") {
-            var node=findNode(automation.rootInActiveWindow) {it.contentDescription=="Página siguiente"}
+            var node=findNode(root) {it.contentDescription=="Página siguiente"}
             var disabled=false
             while(node!=null) {if(!node.isEnabled) disabled=true;node=node.parent}
             disabled

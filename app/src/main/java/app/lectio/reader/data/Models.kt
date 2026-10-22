@@ -5,7 +5,7 @@ data class Book(
     val id: String, val title: String, val author: String, val file: String,
     val cover: String?, val chapters: List<Chapter>, val chapter: Int = 0,
     val position: Float = 0f, val lastRead: Long = 0L, val added: Long = System.currentTimeMillis(),
-    val demo: Boolean = false, val textOffset: Int = -1
+    val demo: Boolean = false, val textOffset: Int = -1, val language: String = "", val dictionaryLanguage: String = ""
 ) {
     val progress: Float get() = if (chapters.isEmpty()) 0f else ((chapter + position) / chapters.size).coerceIn(0f, 1f)
 }
@@ -14,7 +14,7 @@ data class Word(
     val example: String = "", val synonyms: String = "", val level: String = "",
     val book: String = "", val context: String = "", val learned: Boolean = false,
     val due: Long = 0, val interval: Int = 0, val source: String = "Diccionario local",
-    val dictionarySource: String = "", val dictionaryLicense: String = ""
+    val dictionarySource: String = "", val dictionaryLicense: String = "", val language: String = "en"
 )
 data class Annotation(val id: Long, val bookId: String, val chapter: Int, val position: Float,
     val text: String, val note: String, val type: String, val textOffset: Int = -1)
@@ -34,4 +34,5 @@ data class Preferences(val theme: String = "Oscuro", val fontSize: Int = 20,
 data class WordSense(val partOfSpeech: String, val definition: String, val example: String = "", val spanish: String = "")
 data class DictionaryCredit(val name: String, val url: String)
 data class DictionaryEntry(val word: String, val phonetic: String = "", val senses: List<WordSense>,
-    val sources: List<String> = emptyList(), val licenses: List<DictionaryCredit> = emptyList(), val cached: Boolean = false)
+    val sources: List<String> = emptyList(), val licenses: List<DictionaryCredit> = emptyList(), val cached: Boolean = false,
+    val language: String = "en", val definitionLanguage: String = "en", val lemma: String = "", val relatedWords: List<String> = emptyList())

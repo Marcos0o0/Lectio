@@ -20,17 +20,16 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         tts=TextToSpeech(this) { status ->
-            if(status==TextToSpeech.SUCCESS) {
-                val result=tts?.setLanguage(Locale.US)
-                ttsReady=result!=TextToSpeech.LANG_MISSING_DATA && result!=TextToSpeech.LANG_NOT_SUPPORTED
-            }
+            ttsReady=status==TextToSpeech.SUCCESS
         }
         setContent {
             val state by viewModel.state.collectAsStateWithLifecycle()
             LectioTheme(state.preferences.theme) {
                 LectioApp(viewModel,state) { text ->
-                    if(ttsReady) tts?.speak(text,TextToSpeech.QUEUE_FLUSH,null,"lectio-word")
-                    else viewModel.message("Instala una voz de inglés en los ajustes de texto a voz de Android.")
+                    val language=if(state.selection!=null) state.lookupLanguage else state.words.firstOrNull {it.text.equals(text,true)}?.language ?: "en"
+                    val result=if(ttsReady) tts?.setLanguage(if(language=="es") Locale.forLanguageTag("es") else Locale.US) else null
+                    if(result!=null&&result!=TextToSpeech.LANG_MISSING_DATA&&result!=TextToSpeech.LANG_NOT_SUPPORTED) tts?.speak(text,TextToSpeech.QUEUE_FLUSH,null,"lectio-word")
+                    else viewModel.message("Instala una voz de ${if(language=="es") "español" else "inglés"} en los ajustes de texto a voz de Android.")
                 }
             }
         }

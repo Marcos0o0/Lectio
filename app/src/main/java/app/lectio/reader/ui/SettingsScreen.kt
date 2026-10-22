@@ -47,12 +47,12 @@ import app.lectio.reader.data.Preferences
                 "Lectura" -> ReadingPreferences(p,save)
                 "Diccionario y traducción" -> {
                     Text("Significado de palabras",style=MaterialTheme.typography.titleMedium)
-                    PreferenceSwitch("Consultar el diccionario","Busca la palabra en Wiktionary. No envía la oración ni usa tu saldo de Gemini.",p.dictionaryEnabled) {value -> save {current -> current.copy(dictionaryEnabled=value)}}
-                    Text("Las entradas consultadas quedan guardadas para leerlas sin conexión. Las palabras nuevas necesitan internet; no todas tienen una entrada.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
-                    TextButton(onClick={uri.openUri("https://en.wiktionary.org/wiki/Wiktionary:Main_Page")},contentPadding=PaddingValues(0.dp)) {Text("Acerca del diccionario")}
+                    PreferenceSwitch("Consultar el diccionario","Consulta español en Wikcionario e inglés en Wiktionary. No envía la oración ni usa tu saldo de Gemini.",p.dictionaryEnabled) {value -> save {current -> current.copy(dictionaryEnabled=value)}}
+                    Text("Las entradas consultadas quedan guardadas para leerlas sin conexión. Las palabras nuevas necesitan internet; no todas tienen una entrada. Las definiciones españolas no necesitan descargar el traductor.",style=MaterialTheme.typography.bodyMedium,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    TextButton(onClick={uri.openUri("https://es.wiktionary.org/wiki/Wikcionario:Portada")},contentPadding=PaddingValues(0.dp)) {Text("Acerca del diccionario")}
                     HorizontalDivider(color=MaterialTheme.colorScheme.outlineVariant)
                     Text("Traducción sin conexión",style=MaterialTheme.typography.titleMedium)
-                    Text(if(translationReady) "Inglés → español · listo" else "Descarga español para traducir el libro y los significados en este dispositivo.",style=MaterialTheme.typography.bodyLarge)
+                    Text(if(translationReady) "Inglés → español · listo" else "Descarga español para traducir desde inglés las palabras, oraciones y definiciones en este dispositivo.",style=MaterialTheme.typography.bodyLarge)
                     if(!translationReady) {
                         Button(onClick={download(true)},enabled=!downloading,modifier=Modifier.fillMaxWidth()) {Text(if(downloading) "Descargando idioma…" else "Descargar español por Wi-Fi")}
                         if(downloading) LinearProgressIndicator(Modifier.fillMaxWidth()) else TextButton(onClick={download(false)}) {Text("Descargar usando datos móviles")}

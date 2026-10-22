@@ -24,7 +24,9 @@ import app.lectio.reader.ReaderViewModel
     val importer=rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri -> uri?.let(vm::importBook) }
     val importBook: () -> Unit = { importer.launch(arrayOf("application/epub+zip","application/octet-stream")) }
     LaunchedEffect(vm) { vm.events.collect { snackbars.showSnackbar(it) } }
-    BackHandler(enabled=state.current!=null) { if(state.selection!=null) vm.dismissSelection() else vm.closeBook() }
+    BackHandler(enabled=state.current!=null) {
+        when {state.selection!=null -> vm.dismissSelection();state.immersive -> vm.immersive(false);else -> vm.closeBook()}
+    }
     val labels=listOf("Biblioteca","Vocabulario","Actividad","Ajustes")
     val icons=listOf(Icons.Outlined.AutoStories,Icons.Outlined.Bookmarks,Icons.Outlined.BarChart,Icons.Outlined.Tune)
     BoxWithConstraints {

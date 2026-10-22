@@ -1,53 +1,51 @@
-# Validación de Lectio 0.4.0
+# Validación de Lectio 0.5.0
 
-17 de octubre de 2026. Windows, JDK 21 de Android Studio y SDK 36. Paquete `app.lectio.reader`, versión 0.4.0 (código 5), mínimo API 26, objetivo API 36.
+22 de octubre de 2026. Windows, JDK 21 de Android Studio y Android SDK 36. Paquete `app.lectio.reader`, versión 0.5.0 (código 6), mínimo API 26, objetivo API 36.
 
-## Compilación y almacenamiento
+## Compilación y datos
 
-Compilación completa: `:app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug --offline --max-workers=1`, con JDK 21 y heap de 1 GB. Terminó correctamente en 5 min 28 s. Los ajustes posteriores afectan únicamente al test instrumentado y documentación; su compilación y lint también terminaron correctamente.
+`:app:assembleDebug :app:assembleDebugAndroidTest :app:testDebugUnitTest :app:lintDebug --offline --max-workers=1`, con heap de 1 GB, terminó correctamente. La última compilación completa del APK duró 4 min 53 s. Los ajustes posteriores al test instrumentado también compilaron correctamente.
 
-- **22 pruebas JVM, cero fallos:** ocho de EPUB, tres de recursos WebView, tres de Gemini, tres de diccionario, cuatro de almacenamiento y una del flujo Compose.
-- Reapertura de libros y anotaciones con posición de texto, y migración de una base versión 1 a versión 2 conservando marcadores y progreso anteriores. Las posiciones antiguas usan el valor compatible -1 y su fracción guardada.
-- Papel persiste junto al resto de personalización. Se conserva la regresión de cambios consecutivos de preferencias sin sobrescribir elecciones anteriores.
-- Lint: **cero errores**, ocho advertencias y tres sugerencias.
+- **28 pruebas JVM, cero fallos:** ocho de EPUB, tres de recursos WebView, tres de Gemini, seis de diccionario, dos de idioma, cinco de almacenamiento y una del flujo Compose.
+- Los seis ejemplos del usuario tienen respuestas reales de Wikcionario como fixtures de test: patriarcado, feminista, ensombrecieron, despolitización, metalingüísticas y sesgos. Se verifican separación de idiomas, limpieza de ejemplos, enlaces a formas base, Unicode/NFC y atribución tras caché.
+- La búsqueda de grafías sin acento solo acepta la misma palabra al quitar tildes o diéresis; conserva la diferencia entre n y ñ y rechaza resultados aproximados. Un homógrafo con significado propio conserva sus acepciones aunque incluya también una forma verbal.
+- Cachés española e inglesa independientes para la misma palabra, lectura compatible de cachés antiguas, idioma y elección por libro persistentes. Se conservan las pruebas de posiciones de texto, migración de datos y preferencias consecutivas.
+- Lint: **cero errores, nueve advertencias y tres sugerencias**. Las advertencias corresponden a actualizaciones de dependencias y recomendaciones KTX.
 - Firma v2 verificada con apksigner; aapt confirma versión, código y niveles de API.
 
 ## Android y Chromium
 
-**Cuatro pruebas instrumentadas aprobadas**, `OK (4 tests)`, 75,158 segundos, en Android 15/API 35 x86_64 con Chromium real.
+**Cinco flujos instrumentados aprobados en Android 15/API 35 x86_64**, con Chromium real y el mismo APK. Cuatro pruebas se aprobaron en el recorrido conjunto; la comprobación Claro/Oscuro se aprobó en una ejecución focalizada de 15,302 s (`OK (1 test)`) después de mejorar la consulta de accesibilidad del test y la espera al regresar a la biblioteca. Los registros locales están en `.tools/android15/v050-native.txt` y `v050-themes-native.txt`.
 
-La prueba nueva importa un EPUB de dos capítulos: el primero tiene 90 párrafos y debe generar más de 15 páginas. Comprueba avance y retroceso mediante controles nativos, un deslizamiento horizontal real sin cambiar de capítulo, tamaño de letra 28 y márgenes amplios conservando el anclaje, tema Papel, giro a horizontal y regreso, reapertura, búsqueda y enlaces a fragmentos, llegada al siguiente capítulo, avance desactivado al final del libro y retorno a la última página del capítulo anterior.
+1. Capítulo de 90 párrafos: páginas sin saltar capítulos, flechas y deslizamiento táctil, cambio de letra y márgenes, Papel, búsqueda, enlaces internos, cruce de capítulos y reapertura conservando el texto. Añade entrada inmersiva desde una página posterior al inicio, barras del sistema ocultas, deslizamiento dentro de pantalla completa, salida con Atrás sin cerrar el libro, giro conservando el texto y salida mediante el botón visible.
+2. Libro en español: toque real de las seis palabras comunicadas por el usuario. Confirma definiciones originales españolas, forma base de ensombrecieron y metalingüísticas, grafía corregida de despolitizacion, términos enlazados de feminista y ausencia de la definición inglesa incorrecta «hispana». Guarda sesgos sin traducción ni Gemini; cambia Español/Inglés, recupera la caché española y conserva la elección al reabrir. La consulta funciona dentro del modo inmersivo y también por pulsación prolongada.
+3. Personalización persistida y estilos calculados en Chromium: fondo, márgenes, separación de párrafos, alineación y controles.
+4. Regresión inglesa: selección prolongada y toque reales, traducción local, ficha de significado/contexto/notas, acceso a Gemini y regreso al libro, índice, marcador y reapertura.
+5. Cambio Claro/Oscuro aplicado al lector y flujo de conexión opcional de Gemini.
 
-Las otras tres pruebas conservan la cobertura de personalización persistida y CSS calculado en Chromium, temas claro/oscuro, pulsación prolongada y toque reales de palabras, traducción con el modelo local, ficha de significado/contexto/notas, apertura de Gemini y regreso al mismo libro, índice, marcador y reapertura. El modelo de traducción descargado y la caché de Wiktionary se reutilizan. No se introducen claves ni se consumen solicitudes de Gemini.
+La prueba española usa la API pública real de Wikcionario, además de reutilizar las entradas guardadas al repetir consultas. No se introducen claves ni se consumen solicitudes de Gemini. Las frases inglesas se seleccionan mediante rango DOM: sigue pendiente verificar el arrastre físico de los tiradores de selección.
 
-La selección de una frase se crea mediante un rango DOM: **no valida el arrastre físico de los tiradores de selección**. La paginación y los cambios de ventana se prueban en un emulador, no en el Redmi físico del usuario.
+## Capturas nativas
 
-## Comportamiento de las páginas
+Evidencia en [.impeccable/review/v050](.impeccable/review/v050). Teléfono 720 × 1600/densidad 280, texto al 130 %, ventana amplia horizontal 1800 × 1280/densidad 240 y teléfono horizontal 1600 × 720/densidad 280.
 
-El motor usa columnas con la altura útil del WebView y un contenedor que muestra una página cada vez. Las flechas, el teclado y el deslizamiento horizontal llaman al mismo avance; solo el límite del capítulo solicita otro capítulo. Se espera a la fuente local y se recalcula al variar la ventana o cargarse una imagen.
+- Pantalla completa [oscura](.impeccable/review/v050/phone-immersive-dark-android15.png) y [Papel](.impeccable/review/v050/phone-immersive-paper-android15.png).
+- Significados de [feminista](.impeccable/review/v050/phone-spanish-feminista-android15.png), [ensombrecieron](.impeccable/review/v050/phone-spanish-verb-android15.png) y [sesgos guardado](.impeccable/review/v050/phone-spanish-cached-android15.png).
+- [Regresión inglesa](.impeccable/review/v050/phone-lookup-dark-android15.png).
+- Texto al 130 %: [lector inmersivo](.impeccable/review/v050/phone-font130-spanish-immersive-android15.png) y [consulta](.impeccable/review/v050/phone-font130-spanish-lookup-android15.png).
+- Ventana amplia: [lector inmersivo](.impeccable/review/v050/tablet-landscape-spanish-immersive-android15.png) y [consulta](.impeccable/review/v050/tablet-landscape-spanish-lookup-android15.png).
+- Teléfono horizontal: [lector inmersivo](.impeccable/review/v050/phone-landscape-spanish-immersive-android15.png) y [consulta desplazada](.impeccable/review/v050/phone-landscape-spanish-lookup-scrolled-android15.png).
 
-Los anclajes cuentan posiciones de texto del capítulo saneado, independientes del tamaño de letra. La búsqueda marca el resultado y abre su página, y los enlaces internos resuelven el fragmento. Las páginas compuestas solo por imágenes conservan una fracción como alternativa. No son localizadores CFI ni posiciones portables entre motores. Las anotaciones antiguas conservan su posición aproximada.
+Las paletas y la tipografía de 0.4.0 se conservan. Las capturas corresponden a Android y controles nativos; no son mockups ni un navegador de escritorio.
 
-El pie identifica la página y total **del capítulo**. Cambian con la tipografía, los márgenes y la ventana; no equivalen a una edición impresa. El porcentaje del libro sigue siendo aproximado por capítulo y posición.
-
-## Evidencia visual y Papel
-
-Capturas del emulador en [.impeccable/review/v040](.impeccable/review/v040), con teléfono 720 × 1600/densidad 280, texto al 130 %, ventana amplia 1280 × 1800/densidad 240, amplia horizontal 1800 × 1280/densidad 240 y teléfono horizontal 1600 × 720/densidad 280. Se capturan el lector y los ajustes nativos; no son mockups ni capturas de un navegador de escritorio.
-
-- [Papel](.impeccable/review/v040/phone-paper-reader-android15.png) y [página siguiente del mismo capítulo](.impeccable/review/v040/phone-paper-next-page-android15.png).
-- [Opciones de fondo](.impeccable/review/v040/phone-paper-options-android15.png) y [texto al 130 %](.impeccable/review/v040/phone-font130-paper-reader-android15.png).
-- [Ventana amplia](.impeccable/review/v040/tablet-paper-reader-android15.png), [amplia horizontal](.impeccable/review/v040/tablet-landscape-paper-reader-android15.png) y [teléfono horizontal](.impeccable/review/v040/phone-landscape-paper-reader-android15.png).
-- [Capítulo largo, 190 páginas con letra 28](.impeccable/review/v040/phone-paper-page-android15.png) y [final del libro](.impeccable/review/v040/phone-final-page-android15.png).
-- [Oscuro](.impeccable/review/v040/phone-reader-dark-android15.png), [claro](.impeccable/review/v040/phone-reader-light-android15.png) y [consulta de palabra](.impeccable/review/v040/phone-lookup-dark-android15.png).
-
-Papel aplica fondo #F6EBCF y texto #302B22 al libro y sus barras, manteniendo el tema propio de la biblioteca. Las medidas de 13 pares de texto son ≥5,23:1; el cuerpo alcanza 11,85:1 y los contornos principales 3,96:1. Selección, subrayados y contenedores usan los roles correspondientes del tema. Las paletas clara y oscura de 0.3.0 no cambian. Estas medidas no constituyen una auditoría completa de accesibilidad.
+La revisión Impeccable del alcance nativo terminó con disposición **ship**: las 17 capturas no mostraron defectos visuales materiales. Se corrigió la documentación de diseño para reflejar las consultas españolas y la lectura inmersiva, conservando los tokens existentes; una revisión posterior confirmó esa corrección. Esta aprobación no amplía la cobertura de hardware indicada abajo.
 
 ## Límites
 
-No hubo Redmi conectado. Siguen pendientes en hardware los tiradores y menú de selección del fabricante, TTS, selector de archivos, TalkBack, restauración tras terminar el proceso y rendimiento con EPUB grandes o maquetaciones complejas. Un capítulo de prueba largo no certifica todos los libros. Se mantienen los límites de EPUB sin DRM y contenido reflowable del README.
+No hubo Redmi físico conectado. Siguen pendientes en hardware TTS y sus voces instaladas, tiradores y menú de selección del fabricante, selector de archivos, TalkBack, restauración tras terminar el proceso y rendimiento con EPUB grandes. Un capítulo largo no certifica todos los libros. Se mantienen los límites de EPUB sin DRM y contenido reflowable del README.
 
-Los significados nuevos requieren internet; los ya guardados y las traducciones con el modelo descargado pueden reutilizarse sin conexión. Las explicaciones reales de Gemini y su facturación no se verifican con una cuenta personal en estas pruebas.
+Wikcionario y Wiktionary pueden carecer de una palabra o de una acepción. Las formas base se consultan a partir de enlaces explícitos, con un máximo de un salto. No se adivina el sentido contextual de una acepción. Las palabras nuevas requieren internet; las entradas guardadas se reutilizan por idioma. Las traducciones inglesas requieren el modelo local descargado. Las explicaciones reales de Gemini y su facturación no se verifican con una cuenta personal.
 
-## SHA-256 del APK validado
+## SHA-256 del APK
 
-D6C709D52D6E22932BB4E925784B3A651F8BA001508DD815DCF1D49AD81BD28A
+`B59C7BF41E712C5AF0AF7F3759AE0B02A8A41B57417011DE9FED154E4A0295CC`

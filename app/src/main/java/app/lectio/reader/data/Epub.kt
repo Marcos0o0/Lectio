@@ -87,7 +87,12 @@ object Epub {
         require(chapters.isNotEmpty()) { "No hay capítulos legibles. Verifica que el EPUB no tenga DRM." }
         val coverId = opf.elements("meta").firstOrNull { it.attr("name") == "cover" }?.attr("content")
         val cover = manifest.values.firstOrNull { it.second.attr("properties").split(' ').contains("cover-image") }?.first ?: manifest[coverId]?.first
-        return Book(id, metadata("title", "Sin título"), metadata("creator", "Autor desconocido"), file.absolutePath, cover, chapters)
+        return Book(id, metadata("title", "Sin título"), metadata("creator", "Autor desconocido"), file.absolutePath, cover, chapters,language=metadata("language",""))
+    }
+
+    fun language(file: File): String {
+        val root=xml(resource(file,"META-INF/container.xml")).elements("rootfile").firstOrNull() ?: return ""
+        return xml(resource(file,resolve("",root.attr("full-path")))).elements("language").firstOrNull()?.text()?.trim().orEmpty()
     }
 
     /** Active content from books is removed before our own selection bridge is added. */

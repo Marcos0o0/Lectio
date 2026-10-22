@@ -50,9 +50,9 @@ import androidx.compose.foundation.verticalScroll
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal=24.dp).padding(bottom=32.dp),verticalArrangement=Arrangement.spacedBy(16.dp)) {
                 Row(verticalAlignment=Alignment.CenterVertically) {Text(word.text,Modifier.weight(1f),style=MaterialTheme.typography.headlineLarge);IconButton(onClick={pronounce(word.text)}) {Icon(Icons.Outlined.VolumeUp,"Escuchar pronunciación")}}
                 Text(word.translation,style=MaterialTheme.typography.titleLarge)
-                if(word.definition.isNotBlank()) Text(word.definition)
+                if(word.definition.isNotBlank()&&word.definition!=word.translation) Text(word.definition)
                 if(DictionaryClient.safeLink(word.dictionarySource)) {
-                    Text("Autores de Wiktionary. La definición puede estar traducida automáticamente.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(if(word.language=="es") "Autores de Wikcionario · definición en español." else "Autores de Wiktionary. La definición puede estar traducida automáticamente.",style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
                     TextButton(onClick={uri.openUri(word.dictionarySource)}) {Text("Ver definición original")}
                     if(DictionaryClient.safeLink(word.dictionaryLicense)) TextButton(onClick={uri.openUri(word.dictionaryLicense)}) {Text("CC BY-SA 4.0")}
                 }

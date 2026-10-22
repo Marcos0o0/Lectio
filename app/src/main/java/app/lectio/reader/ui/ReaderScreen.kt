@@ -23,6 +23,10 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.repeatOnLifecycle
 import app.lectio.reader.ReaderState
 import app.lectio.reader.ReaderViewModel
@@ -56,6 +60,20 @@ import java.io.File
     var pendingSearch by rememberSaveable(book.id) {mutableStateOf("")}
     var searchOccurrence by rememberSaveable(book.id) {mutableIntStateOf(0)}
     val lifecycle=LocalLifecycleOwner.current
+    val view=LocalView.current
+    val hideBars=state.immersive&&panel==null&&state.selection==null
+    DisposableEffect(view,lifecycle,hideBars) {
+        val controller=(view.context as? android.app.Activity)?.window?.let {WindowCompat.getInsetsController(it,view)}
+        val behavior=controller?.systemBarsBehavior
+        fun applyBars() {controller?.apply {
+            systemBarsBehavior=WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            if(hideBars) hide(WindowInsetsCompat.Type.systemBars()) else show(WindowInsetsCompat.Type.systemBars())
+        }}
+        applyBars()
+        val observer=LifecycleEventObserver {_,event -> if(event==Lifecycle.Event.ON_RESUME) applyBars()}
+        lifecycle.lifecycle.addObserver(observer)
+        onDispose {lifecycle.lifecycle.removeObserver(observer);controller?.show(WindowInsetsCompat.Type.systemBars());if(behavior!=null) controller?.systemBarsBehavior=behavior}
+    }
     LaunchedEffect(book.id,lifecycle) {
         lifecycle.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
             while(true) {delay(10000);vm.readingTick(10)}
@@ -64,11 +82,12 @@ import java.io.File
     LaunchedEffect(state.selection) { if(state.selection==null) webView?.evaluateJavascript("window.getSelection().removeAllRanges();window.lastLookup='';",null) }
     Scaffold(
         snackbarHost={SnackbarHost(snackbars)},
-        topBar={TopAppBar(title={Column {Text(book.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis);Text("${book.chapter+1}/${book.chapters.size} · ${book.chapters[book.chapter].title}",maxLines=1,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}},navigationIcon={IconButton(onClick=vm::closeBook){Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Volver a la biblioteca")}},actions={
+        topBar={if(!state.immersive) TopAppBar(title={Column {Text(book.title,style=MaterialTheme.typography.titleMedium,maxLines=1,overflow=TextOverflow.Ellipsis);Text("${book.chapter+1}/${book.chapters.size} · ${book.chapters[book.chapter].title}",maxLines=1,overflow=TextOverflow.Ellipsis,style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)}},navigationIcon={IconButton(onClick=vm::closeBook){Icon(Icons.AutoMirrored.Outlined.ArrowBack,"Volver a la biblioteca")}},actions={
             IconButton(onClick={panel="search"}){Icon(Icons.Outlined.Search,"Buscar dentro del libro")}
             IconButton(onClick={panel="type"}){Icon(Icons.Outlined.TextFields,"Apariencia de lectura")}
+            IconButton(onClick={vm.immersive(true)}){Icon(Icons.Outlined.Fullscreen,"Leer a pantalla completa")}
         })},
-        bottomBar={Surface(color=MaterialTheme.colorScheme.surface) { Column(Modifier.navigationBarsPadding()) {
+        bottomBar={if(!state.immersive) Surface(color=MaterialTheme.colorScheme.surface) { Column(Modifier.navigationBarsPadding()) {
             LinearProgressIndicator(progress={book.progress},Modifier.fillMaxWidth(),trackColor=MaterialTheme.colorScheme.surfaceVariant)
             Row(Modifier.fillMaxWidth().padding(horizontal=8.dp),verticalAlignment=Alignment.CenterVertically,horizontalArrangement=Arrangement.SpaceBetween) {
                 IconButton(onClick={panel="contents"}){Icon(Icons.Outlined.FormatListBulleted,"Índice y anotaciones")}
@@ -82,10 +101,13 @@ import java.io.File
             }
         } }},contentWindowInsets=WindowInsets(0,0,0,0)
     ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            if(state.preferences.showReadingHint) Text(if(state.preferences.tapToTranslate) "Desliza para pasar página. Toca una palabra para consultar; mantén pulsado para seleccionar." else "Desliza para pasar página. Mantén pulsada una palabra o frase para consultar.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
-            key(book.id,book.chapter) {
-                ReaderWebView(book,state.preferences,readingScheme.background,readingScheme.onBackground,state.annotations,pendingSearch,searchOccurrence,state.navigationId,state.fragment,Modifier.weight(1f).fillMaxWidth(),{webView=it},vm::select,{pagination=it;vm.readerProgress(book.id,book.chapter,it.progress,it.offset)},{direction->if(direction<0&&book.chapter>0)vm.chapter(book.chapter-1,1f) else if(direction>0&&book.chapter<book.chapters.lastIndex)vm.chapter(book.chapter+1)},{index,anchor->vm.chapter(index,fragment=anchor)},{pendingSearch="";vm.navigationConsumed()})
+        Column(Modifier.fillMaxSize().padding(padding).then(if(state.immersive) Modifier.windowInsetsPadding(WindowInsets.displayCutout) else Modifier)) {
+            if(state.preferences.showReadingHint&&!state.immersive) Text(if(state.preferences.tapToTranslate) "Desliza para pasar página. Toca una palabra para consultar; mantén pulsado para seleccionar." else "Desliza para pasar página. Mantén pulsada una palabra o frase para consultar.",Modifier.fillMaxWidth().padding(horizontal=24.dp,vertical=8.dp),style=MaterialTheme.typography.bodySmall,color=MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(Modifier.weight(1f).fillMaxWidth()) {
+                key(book.id,book.chapter) {
+                    ReaderWebView(book,state.preferences,readingScheme.background,readingScheme.onBackground,state.annotations,pendingSearch,searchOccurrence,state.navigationId,state.fragment,Modifier.fillMaxSize().padding(top=if(state.immersive) 56.dp else 0.dp),{webView=it},vm::select,{pagination=it;vm.readerProgress(book.id,book.chapter,it.progress,it.offset)},{direction->if(direction<0&&book.chapter>0)vm.chapter(book.chapter-1,1f) else if(direction>0&&book.chapter<book.chapters.lastIndex)vm.chapter(book.chapter+1)},{index,anchor->vm.chapter(index,fragment=anchor)},{pendingSearch="";vm.navigationConsumed()})
+                }
+                if(state.immersive) IconButton(onClick={vm.immersive(false)},modifier=Modifier.align(Alignment.TopEnd).padding(horizontal=8.dp,vertical=4.dp).size(48.dp)) {Icon(Icons.Outlined.FullscreenExit,"Salir de pantalla completa")}
             }
         }
     }

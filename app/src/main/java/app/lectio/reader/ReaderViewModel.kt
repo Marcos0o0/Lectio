@@ -19,6 +19,7 @@ data class ReaderState(
     val selection: Selection? = null, val lookup: Lookup? = null,
     val lookupLoading: Boolean = false, val lookupError: String? = null,
     val dictionary: DictionaryEntry? = null, val definitionLoading: Boolean = false, val definitionError: String? = null,
+    val lookupLanguage: String = "en", val immersive: Boolean = false,
     val translationReady: Boolean = false, val translationDownloading: Boolean = false, val translationNeedsDownload: Boolean = false
 )
 
@@ -47,10 +48,19 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         catch(e: Exception) { message(e.message ?: "No se pudo importar. Verifica que sea un EPUB sin DRM.") }
         finally { mutable.update { it.copy(importing=false) } }
     } }
-    fun open(book: Book) { lookupJob?.cancel(); mutable.update { it.copy(current=book,selection=null,lookup=null,fragment=null,navigationId=it.navigationId+1) }; viewModelScope.launch(Dispatchers.IO) {
-        val annotations=repo.db.annotations(book.id); mutable.update { if(it.current?.id==book.id) it.copy(annotations=annotations) else it }
+    fun open(book: Book) { dismissSelection(); mutable.update { it.copy(current=book,immersive=false,fragment=null,navigationId=it.navigationId+1) }; viewModelScope.launch(Dispatchers.IO) {
+        val annotations=repo.db.annotations(book.id)
+        val language=book.language.ifBlank {runCatching {Epub.language(java.io.File(book.file))}.getOrDefault("")}
+        // Merge metadata into the latest position, never the position captured before I/O.
+        withContext(Dispatchers.Main) {
+            val latest=mutable.value.current?.takeIf {it.id==book.id} ?: return@withContext
+            val updated=latest.copy(language=language)
+            mutable.update {it.copy(current=updated,annotations=annotations,books=it.books.map {b -> if(b.id==book.id) updated else b})}
+            progressWrites.trySend(updated)
+        }
     }; progress(book.chapter,book.position,book.textOffset) }
-    fun closeBook() { dismissSelection(); mutable.update { it.copy(current=null) } }
+    fun closeBook() { dismissSelection(); mutable.update { it.copy(current=null,immersive=false) } }
+    fun immersive(value: Boolean) {mutable.update {it.copy(immersive=value)}}
     fun progress(chapter: Int, position: Float, textOffset: Int = -1) {
         val book=mutable.value.current ?: return
         val updated=book.copy(chapter=chapter.coerceIn(book.chapters.indices),position=position.coerceIn(0f,1f),textOffset=textOffset,lastRead=System.currentTimeMillis())
@@ -65,15 +75,34 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
         mutable.update {it.copy(preferences=change(it.preferences))}
         preferenceWrites.trySend(mutable.value.preferences)
     }
-    fun select(selection: Selection) { if(selection.text.isBlank()||mutable.value.selection==selection) return; lookupJob?.cancel();definitionJob?.cancel(); mutable.update { it.copy(selection=selection,lookup=null,lookupError=null,lookupLoading=true,translationNeedsDownload=false,dictionary=null,definitionError=null,definitionLoading=false) }; query("translate",false);define() }
+    fun select(selection: Selection) {
+        if(selection.text.isBlank()||mutable.value.selection==selection) return
+        startSelection(selection,ReadingLanguage.resolve(mutable.value.current,selection))
+    }
+    private fun startSelection(selection: Selection, language: String) {
+        lookupJob?.cancel();definitionJob?.cancel()
+        mutable.update {it.copy(selection=selection,lookupLanguage=language,lookup=null,lookupError=null,lookupLoading=false,translationNeedsDownload=false,dictionary=null,definitionError=null,definitionLoading=false)}
+        if(language=="en") query("translate",false)
+        define()
+    }
+    fun lookupLanguage(language: String) {
+        if(language !in setOf("en","es")||language==mutable.value.lookupLanguage) return
+        mutable.value.current?.let {book ->
+            val updated=book.copy(dictionaryLanguage=language)
+            mutable.update {it.copy(current=updated,books=it.books.map {b -> if(b.id==book.id) updated else b})}
+            progressWrites.trySend(updated)
+        }
+        mutable.value.selection?.let {startSelection(it,language)}
+    }
     fun define() {
         val selection=mutable.value.selection ?: return
+        val language=mutable.value.lookupLanguage
         if(DictionaryClient.word(selection.text)==null) return
         definitionJob?.cancel()
         definitionJob=viewModelScope.launch {
             mutable.update {it.copy(definitionLoading=true,definitionError=null)}
             try {
-                val entry=withContext(Dispatchers.IO) {repo.definition(selection.text,mutable.value.preferences.dictionaryEnabled)}
+                val entry=withContext(Dispatchers.IO) {repo.definition(selection.text,mutable.value.preferences.dictionaryEnabled,language)}
                 ensureActive();mutable.update {it.copy(dictionary=entry,definitionLoading=false)}
             } catch(e: CancellationException) {throw e}
             catch(_: Exception) {mutable.update {it.copy(definitionLoading=false,definitionError="No se pudo consultar el diccionario. Revisa tu conexión y vuelve a intentarlo.")}}
@@ -86,7 +115,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 repo.translation.download(wifiOnly)
                 mutable.update {it.copy(translationReady=true,translationNeedsDownload=false,translationDownloading=false)}
-                if(mutable.value.selection!=null) {query("translate",false);define()}
+                if(mutable.value.selection!=null) {if(mutable.value.lookupLanguage=="en") query("translate",false);define()}
                 message("Español descargado. Ya puedes traducir sin conexión.")
             } catch(e: CancellationException) {throw e}
             catch(e: Exception) {val error="No se pudo descargar el idioma. Revisa tu conexión y vuelve a intentarlo.";mutable.update {it.copy(translationDownloading=false,lookupError=error)};message(error)}
@@ -94,6 +123,7 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     }
     fun query(action: String, useAi: Boolean = true) {
         val selection=mutable.value.selection ?: return
+        if(mutable.value.lookupLanguage!="en") return
         lookupJob?.cancel()
         lookupJob=viewModelScope.launch {
             mutable.update { it.copy(lookupLoading=true,lookupError=null,translationNeedsDownload=false) }
@@ -110,14 +140,14 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     fun saveWord(manual: String? = null) {
         val s=mutable.value;val selection=s.selection ?: return; val lookup=s.lookup
         if(selection.text.trim().split(Regex("\\s+")).size>12) { message("Para tu vocabulario, selecciona una palabra o expresión corta.");return }
-        val translation=manual?.trim()?.takeIf { it.isNotEmpty() } ?: lookup?.translation ?: return
+        val translation=manual?.trim()?.takeIf { it.isNotEmpty() } ?: lookup?.translation ?: s.dictionary?.takeIf {s.lookupLanguage=="es"}?.senses?.firstOrNull()?.definition ?: return
         val existing=s.words.firstOrNull {it.text.equals(selection.text.trim(),true)}
         val sense=s.dictionary?.senses?.firstOrNull()
         val definition=lookup?.definition?.takeIf {it.isNotBlank()} ?: sense?.let {it.spanish.ifBlank {it.definition}} ?: existing?.definition.orEmpty()
         val fromDictionary=lookup?.definition.isNullOrBlank()&&sense!=null
         val aiDefinition=lookup?.definition?.isNotBlank()==true
         val example=lookup?.example?.takeIf {it.isNotBlank()} ?: if(fromDictionary) sense?.example.orEmpty() else if(aiDefinition) "" else existing?.example.orEmpty()
-        val word=Word(selection.text.trim(),translation,definition,example,lookup?.synonyms.orEmpty(),lookup?.level.orEmpty(),s.current?.title.orEmpty(),selection.context,learned=existing?.learned ?: false,due=existing?.due ?: 0,interval=existing?.interval ?: 0,source=if(manual!=null) "Traducción propia" else lookup?.source.orEmpty(),dictionarySource=if(fromDictionary) s.dictionary?.sources?.firstOrNull().orEmpty() else if(aiDefinition) "" else existing?.dictionarySource.orEmpty(),dictionaryLicense=if(fromDictionary) s.dictionary?.licenses?.firstOrNull()?.url.orEmpty() else if(aiDefinition) "" else existing?.dictionaryLicense.orEmpty())
+        val word=Word(selection.text.trim(),translation,definition,example,lookup?.synonyms.orEmpty(),lookup?.level.orEmpty(),s.current?.title.orEmpty(),selection.context,learned=existing?.learned ?: false,due=existing?.due ?: 0,interval=existing?.interval ?: 0,source=if(manual!=null) "Significado propio" else if(s.lookupLanguage=="es") "Wikcionario · español" else lookup?.source.orEmpty(),dictionarySource=if(fromDictionary) s.dictionary?.let {if(it.lemma.isNotBlank()&&it.sources.size>1) it.sources.last() else it.sources.firstOrNull()}.orEmpty() else if(aiDefinition) "" else existing?.dictionarySource.orEmpty(),dictionaryLicense=if(fromDictionary) s.dictionary?.licenses?.firstOrNull()?.url.orEmpty() else if(aiDefinition) "" else existing?.dictionaryLicense.orEmpty(),language=s.lookupLanguage)
         viewModelScope.launch(Dispatchers.IO) { repo.db.save(word); refresh() };message("Guardado en tu vocabulario")
     }
     fun learn(word: Word, correct: Boolean) { viewModelScope.launch(Dispatchers.IO) {

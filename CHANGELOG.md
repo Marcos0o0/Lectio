@@ -1,5 +1,12 @@
 # Cambios
 
+## 0.5.0 — 22 de octubre de 2026
+
+- Lectura a pantalla completa: oculta barras y ayuda, permite pasar páginas deslizando y conserva el texto al entrar, salir o girar. Un botón visible y Atrás permiten salir sin cerrar el libro.
+- Significados nativos en español desde Wikcionario, incluidos tildes y ñ. Usa el idioma del EPUB y permite elegir Español/Inglés en la consulta; recuerda la elección por libro.
+- Las formas conjugadas y plurales consultan también la forma base enlazada por el diccionario. Si falta una tilde o diéresis, solo se acepta una entrada cuya grafía coincida al omitir esos signos, conservando la diferencia entre n y ñ.
+- Consulta de términos enlazados en las definiciones, guardado de significados españoles sin traductor ni Gemini y voz de Android según el idioma. Cachés separadas por idioma conservando las entradas inglesas anteriores.
+
 ## 0.4.0 — 17 de octubre de 2026
 
 - Lectura paginada con flechas y deslizamiento horizontal. Los avances recorren un capítulo página a página y solo cruzan al siguiente al llegar al final; retroceder desde su inicio abre la última página anterior.

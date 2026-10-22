@@ -12,6 +12,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35])
 class StorageTest {
+    @Test fun dictionaryLanguagesAndBookLanguageChoicesSurviveReopeningWithoutCollisions() {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        context.deleteDatabase("lectio.db")
+        LibraryDb(context).use {db ->
+            db.save(Book("es","Libro","Autor","file",null,listOf(Chapter("one","Uno")),textOffset=123,language="es-CL",dictionaryLanguage="es"))
+            db.cacheDictionary("pan",DictionaryEntry("pan",senses=listOf(WordSense("noun","A cooking vessel."))))
+            db.cacheDictionary("pan",DictionaryEntry("pan",senses=listOf(WordSense("Sustantivo","Alimento.")),language="es",definitionLanguage="es"))
+            db.save(Word("sesgos","Inclinaciones.",language="es"))
+        }
+        LibraryDb(context).use {db ->
+            assertEquals("A cooking vessel.",db.dictionary("pan","en")!!.senses.first().definition)
+            assertEquals("Alimento.",db.dictionary("pan","es")!!.senses.first().definition)
+            assertEquals("es-CL",db.books().single().language)
+            assertEquals("es",db.books().single().dictionaryLanguage)
+            assertEquals(123,db.books().single().textOffset)
+            assertEquals("es",db.words().single().language)
+        }
+    }
     @Test fun importingSameEpubTwicePreservesItsProgress() {
         val context=ApplicationProvider.getApplicationContext<Context>()
         context.deleteDatabase("lectio.db")

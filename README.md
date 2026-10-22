@@ -1,6 +1,6 @@
 # Lectio
 
-Un lector EPUB para Android pensado para leer en inglés y aprender vocabulario sin abandonar el libro. Implementación inicial en Kotlin y Jetpack Compose.
+Un lector EPUB para Android para leer en español o inglés y aprender vocabulario sin abandonar el libro. Implementación inicial en Kotlin y Jetpack Compose.
 
 Lectio es el nombre confirmado del proyecto. Del latín *lēctiō*: lectura.
 
@@ -28,8 +28,9 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 - Leer página a página con flechas o deslizamientos horizontales. Al terminar un capítulo, el siguiente avance abre el próximo; retroceder desde su inicio vuelve a la última página anterior. El índice permite saltar capítulos directamente.
 - Continuar donde se dejó la lectura, con posición de texto guardada y restaurada aunque cambien letra, márgenes o tamaño de pantalla.
 - Navegar con el índice, buscar palabras o frases y crear marcadores.
+- Leer a pantalla completa desde el icono de la barra superior. Salir con el botón visible o Atrás; deslizar sigue pasando páginas y el lugar se conserva al cambiar el espacio de lectura.
 - Tocar una palabra o mantener pulsado para seleccionar una frase y abrir su traducción en una ficha inferior. La ficha separa Significado, Contexto y Notas; incluye definiciones y la oración traducida cuando corresponde.
-- Guardar vocabulario, añadir una traducción propia y escuchar el texto con la voz inglesa de Android.
+- Guardar vocabulario, añadir una traducción propia y escuchar el texto con la voz española o inglesa de Android.
 - Guardar subrayados y notas, y volver a ellos desde las anotaciones del libro.
 - Repasar palabras con flashcards e intervalos de 1, 3, 6, 12… días. Una respuesta fallida vuelve en 10 minutos; desde 7 días se marca como aprendida.
 - Consultar minutos de lectura, días con actividad y palabras aprendidas.
@@ -43,7 +44,11 @@ Al abrir se incluye **A Little More Slowly**, una lectura de muestra original de
 
 La traducción usa **Google Translate mediante Google ML Kit en el dispositivo**, no una lista de significados escrita en el código. La primera consulta ofrece descargar español (alrededor de 30 MB) por Wi-Fi o, si lo eliges, datos móviles. Después traduce palabras y frases sin conexión, sin clave y sin cobros por consulta. [Documentación de traducción](https://developers.google.com/ml-kit/language/translation), [Google Translate](https://cloud.google.com/translate).
 
-**Significados sin clave:** el diccionario consulta únicamente la palabra en [Wiktionary](https://en.wiktionary.org/wiki/Wiktionary:Main_Page), muestra hasta cuatro acepciones y ejemplos, y conserva la entrada y su licencia CC BY-SA 4.0. Los significados se traducen al español con el idioma descargado; el original en inglés sigue disponible. Las consultas se guardan para usarlas sin conexión. Las palabras nuevas requieren internet y algunas no tienen entrada; se puede desactivar la consulta en Ajustes → Diccionario y traducción. Una definición general no determina por sí sola cuál es el sentido del libro.
+**Significados sin clave:** las palabras en español se consultan en [Wikcionario](https://es.wiktionary.org/wiki/Wikcionario:Portada) y muestran definiciones originales en español, sin descargar un traductor. El idioma se toma del EPUB; para libros antiguos se recupera del archivo y, si falta, se estima con el texto. El selector Español/Inglés permite corregirlo y recuerda la elección por libro. Las palabras en inglés usan [Wiktionary](https://en.wiktionary.org/wiki/Wiktionary:Main_Page); sus definiciones se traducen con ML Kit cuando está descargado y el original sigue disponible.
+
+Se muestran hasta cuatro acepciones de la entrada. Las formas conjugadas o plurales siguen una vez el enlace explícito a su forma base y añaden su significado; pueden mostrar hasta cinco acepciones en conjunto. Si la palabra no existe con esa grafía, una búsqueda admite únicamente la misma palabra con cambios de tilde o diéresis, nunca un resultado aproximado ni un cambio de ñ por n. La ficha identifica la entrada utilizada y sus fuentes. Los términos enlazados en las definiciones se pueden consultar desde la ficha.
+
+Las consultas conservan fuente y licencia CC BY-SA 4.0 y se guardan por palabra e idioma para reutilizarlas sin conexión. Las palabras nuevas requieren internet; el diccionario puede carecer de una entrada o de una acepción concreta. Se puede desactivar en Ajustes → Diccionario y traducción. Una definición general no determina por sí sola el sentido del libro. No hay significados escritos a mano en el código de producción ni se usa saldo de Gemini para estas consultas.
 
 **Gemini es opcional** para significado contextual, gramática e inglés sencillo. En Ajustes → Gemini → Conectar Gemini se pega una clave personal de Google AI Studio una sola vez. No se pide URL ni modelo en el flujo normal. Al abrir la conexión desde el lector, Volver al libro conserva el capítulo y la posición. El modelo inicial es `gemini-3.5-flash-lite`; las opciones avanzadas permiten cambiarlo o usar un proveedor compatible con chat completions. No hay una clave del desarrollador dentro del APK.
 
@@ -99,7 +104,7 @@ Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no
 
 Resultados, capturas y pasos pendientes en dispositivo: [VALIDATION.md](VALIDATION.md).
 
-Las 22 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia, migración de ubicaciones y navegación Compose. La suite de cuatro pruebas instrumentadas en Android 15 añade páginas de un capítulo largo, flechas y deslizamiento reales, cambios de tipografía, giro, reapertura, búsqueda y cruce de capítulos; conserva las comprobaciones de selección, traducción local, contexto, Gemini y personalización aplicada en Chromium. Las frases se seleccionan mediante rango DOM, sin validar el arrastre físico de sus tiradores. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Los resultados y capturas actuales están en VALIDATION.md.
+Las 28 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia, migración de ubicaciones y navegación Compose. La suite de cinco pruebas instrumentadas en Android 15 añade páginas de un capítulo largo, flechas y deslizamiento reales, cambios de tipografía, giro, reapertura, búsqueda y cruce de capítulos; conserva las comprobaciones de selección, traducción local, contexto, Gemini y personalización aplicada en Chromium. Añade lectura inmersiva y las seis palabras concretas comunicadas por el usuario, consultadas con la API real de Wikcionario. Las frases se seleccionan mediante rango DOM, sin validar el arrastre físico de sus tiradores. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Los resultados y capturas actuales están en VALIDATION.md.
 
 Quedan por validar en hardware: selección mediante gestos dentro del WebView, motor TTS, selector de archivos de cada fabricante, restauración tras terminar el proceso y rendimiento con libros grandes. El código está disponible en GitHub; la app aún no se ha publicado en una tienda.
 

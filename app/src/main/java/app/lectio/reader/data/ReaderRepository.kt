@@ -39,10 +39,11 @@ class ReaderRepository(private val context: Context) {
         db.cached(cacheKey)?.let { return it }
         return (if(useAi) AiClient.lookup(selection,action,p) else translation.lookup(selection)).also { db.cache(cacheKey,it) }
     }
-    suspend fun definition(text: String, enabled: Boolean): DictionaryEntry? {
+    suspend fun definition(text: String, enabled: Boolean, language: String = "en"): DictionaryEntry? {
         val word=DictionaryClient.word(text) ?: return null
-        val entry=db.dictionary(word) ?: if(enabled) DictionaryClient.fetch(word) else null
+        val entry=db.dictionary(word,language) ?: if(enabled) DictionaryClient.fetch(word,language) else null
         entry ?: return null
+        if(entry.definitionLanguage=="es") {db.cacheDictionary(word,entry);return entry}
         // Preserve the original dictionary text if the language pack is absent or translation fails.
         val ready=try {translation.ready()} catch(e: kotlinx.coroutines.CancellationException) {throw e} catch(_: Exception) {false}
         val translated=if(ready) entry.copy(senses=entry.senses.map { sense ->

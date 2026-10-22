@@ -44,7 +44,7 @@ internal class SelectionWebView(context: Context, private val selected: (Selecti
             override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
                 val created=callback.onCreateActionMode(mode,menu)
                 if(created) {
-                    menu.add(Menu.NONE,TRANSLATE_ID,0,"Traducir").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                    menu.add(Menu.NONE,TRANSLATE_ID,0,"Consultar").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                     nativeSelection=mode
                     postDelayed(readSelection,900)
                 }
@@ -52,7 +52,7 @@ internal class SelectionWebView(context: Context, private val selected: (Selecti
             }
             override fun onPrepareActionMode(mode: ActionMode, menu: Menu): Boolean {
                 val changed=callback.onPrepareActionMode(mode,menu)
-                if(menu.findItem(TRANSLATE_ID)==null) menu.add(Menu.NONE,TRANSLATE_ID,0,"Traducir").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
+                if(menu.findItem(TRANSLATE_ID)==null) menu.add(Menu.NONE,TRANSLATE_ID,0,"Consultar").setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
                 removeCallbacks(readSelection);postDelayed(readSelection,900)
                 return changed
             }
