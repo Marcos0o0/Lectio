@@ -1,5 +1,11 @@
 # Cambios
 
+## 0.6.0 — 24 de octubre de 2026
+
+- Favoritos con un corazón accesible junto a cada libro y filtro propio, sin modificar el progreso ni las anotaciones.
+- Orden de biblioteca por actividad reciente, título, autor o últimos añadidos; favoritos y orden persistentes entre aperturas.
+- Búsqueda combinada con filtros, compatible con títulos y autores sin tildes o diéresis, conservando ñ. Cerrar la búsqueda elimina el texto del filtro; los estados vacíos indican cómo continuar.
+
 ## 0.5.0 — 22 de octubre de 2026
 
 - Lectura a pantalla completa: oculta barras y ayuda, permite pasar páginas deslizando y conserva el texto al entrar, salir o girar. Un botón visible y Atrás permiten salir sin cerrar el libro.

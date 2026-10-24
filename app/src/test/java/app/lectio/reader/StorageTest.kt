@@ -12,6 +12,24 @@ import org.robolectric.annotation.Config
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk=[35])
 class StorageTest {
+    @Test fun libraryChoicesSurviveReopeningWithoutChangingReaderPreferences() {
+        val context=ApplicationProvider.getApplicationContext<Context>()
+        val raw=context.getSharedPreferences("settings",Context.MODE_PRIVATE)
+        raw.edit().clear().putInt("fontSize",24).apply()
+        val store=SettingsStore(context)
+        assertTrue(store.load().favoriteBooks.isEmpty())
+        assertEquals(LibrarySort.RECENT.name,store.load().librarySort)
+        val chosen=store.load().copy(favoriteBooks=setOf("book-a","book-b"),librarySort=LibrarySort.AUTHOR.name)
+        store.save(chosen)
+        assertEquals(chosen,SettingsStore(context).load())
+        store.save(store.load().copy(favoriteBooks=store.load().favoriteBooks-"book-a",theme="Claro"))
+        assertEquals(setOf("book-b"),store.load().favoriteBooks)
+        assertEquals(24,store.load().fontSize)
+        assertEquals(LibrarySort.AUTHOR.name,store.load().librarySort)
+        raw.edit().putString("librarySort","invalid").apply()
+        assertEquals(LibrarySort.RECENT.name,store.load().librarySort)
+        raw.edit().clear().apply()
+    }
     @Test fun dictionaryLanguagesAndBookLanguageChoicesSurviveReopeningWithoutCollisions() {
         val context=ApplicationProvider.getApplicationContext<Context>()
         context.deleteDatabase("lectio.db")

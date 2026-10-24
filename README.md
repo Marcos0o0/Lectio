@@ -25,6 +25,7 @@ Si hace falta, configura `sdk.dir` en `local.properties` (Android Studio lo crea
 ## Qué puedes hacer
 
 - Importar EPUB sin DRM mediante el selector de archivos de Android. El libro se copia al almacenamiento privado: no depende del archivo original.
+- Organizar la biblioteca con favoritos y orden por actividad reciente, título, autor o últimos añadidos. Los favoritos y el orden se conservan al cerrar la app. La búsqueda por título o autor admite tildes omitidas y conserva la diferencia entre n y ñ; se combina con Todos, Favoritos, Leyendo o Terminados.
 - Leer página a página con flechas o deslizamientos horizontales. Al terminar un capítulo, el siguiente avance abre el próximo; retroceder desde su inicio vuelve a la última página anterior. El índice permite saltar capítulos directamente.
 - Continuar donde se dejó la lectura, con posición de texto guardada y restaurada aunque cambien letra, márgenes o tamaño de pantalla.
 - Navegar con el índice, buscar palabras o frases y crear marcadores.
@@ -104,7 +105,7 @@ Se usa SQLiteOpenHelper y preferencias locales para mantener el MVP pequeño; no
 
 Resultados, capturas y pasos pendientes en dispositivo: [VALIDATION.md](VALIDATION.md).
 
-Las 28 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia, migración de ubicaciones y navegación Compose. La suite de cinco pruebas instrumentadas en Android 15 añade páginas de un capítulo largo, flechas y deslizamiento reales, cambios de tipografía, giro, reapertura, búsqueda y cruce de capítulos; conserva las comprobaciones de selección, traducción local, contexto, Gemini y personalización aplicada en Chromium. Añade lectura inmersiva y las seis palabras concretas comunicadas por el usuario, consultadas con la API real de Wikcionario. Las frases se seleccionan mediante rango DOM, sin validar el arrastre físico de sus tiradores. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Los resultados y capturas actuales están en VALIDATION.md.
+Las 32 pruebas JVM cubren EPUB, recursos WebView, Gemini, persistencia, migración de ubicaciones, organización de biblioteca y navegación Compose. En 0.6.0 se verificó en Android 15 un flujo de búsqueda, orden y favoritos que recrea la pantalla y comprueba que no cambie el progreso. La suite conserva otros cinco flujos de lectura, verificados en 0.5.0: páginas, gestos, giro, selección, traducción, consulta de las seis palabras del usuario, personalización e inmersión. Esos cinco flujos no se repitieron en esta entrega. Las frases se seleccionan mediante rango DOM, sin validar el arrastre físico de sus tiradores. La regresión JVM cubre cambios consecutivos de preferencias sin sobrescribir las elecciones anteriores. Los resultados y capturas por versión están en VALIDATION.md y en Git.
 
 Quedan por validar en hardware: selección mediante gestos dentro del WebView, motor TTS, selector de archivos de cada fabricante, restauración tras terminar el proceso y rendimiento con libros grandes. El código está disponible en GitHub; la app aún no se ha publicado en una tienda.
 

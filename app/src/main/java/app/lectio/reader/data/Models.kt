@@ -29,7 +29,8 @@ data class Preferences(val theme: String = "Oscuro", val fontSize: Int = 20,
     val readingTheme: String = "Aplicación", val margin: Int = 28,
     val paragraphSpacing: Float = 1f, val justified: Boolean = false,
     val keepScreenOn: Boolean = false, val tapToTranslate: Boolean = true,
-    val showReadingHint: Boolean = true, val dictionaryEnabled: Boolean = true)
+    val showReadingHint: Boolean = true, val dictionaryEnabled: Boolean = true,
+    val librarySort: String = LibrarySort.RECENT.name, val favoriteBooks: Set<String> = emptySet())
 
 data class WordSense(val partOfSpeech: String, val definition: String, val example: String = "", val spanish: String = "")
 data class DictionaryCredit(val name: String, val url: String)

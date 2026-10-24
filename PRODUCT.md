@@ -25,6 +25,8 @@ La interfaz usa preguntas y acciones concretas, sin eslóganes ni descripciones 
 
 La lectura avanza por páginas adaptadas a la pantalla y la tipografía, mediante flechas o deslizamiento horizontal. Un capítulo largo no se salta con un avance; al terminar sus páginas se continúa con el siguiente. El índice conserva los saltos de capítulo. Los números de página se identifican como relativos al capítulo; no equivalen a una edición impresa. El lugar de lectura se conserva por posición de texto al cambiar la presentación. La lectura inmersiva oculta las barras y ofrece un control visible para salir, además de Atrás. La consulta de palabras y los deslizamientos siguen disponibles.
 
+La biblioteca permite marcar favoritos, combinar búsqueda y filtros y ordenar por actividad reciente, título, autor o fecha de importación. Favoritos y orden se guardan localmente sin cambiar las posiciones de lectura. No requiere cuenta ni conexión.
+
 ## Evidence on Hand
 Brief: proyecto-lector-epub-ia.md. No hay usuarios, estadísticas ni testimonios verificados. Los libros de muestra se identifican como demostración.
 

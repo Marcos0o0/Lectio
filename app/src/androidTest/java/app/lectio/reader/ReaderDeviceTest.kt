@@ -39,6 +39,7 @@ class ReaderDeviceTest {
             if(condition()) return
             SystemClock.sleep(100)
         } while(SystemClock.elapsedRealtime()<deadline)
+        capture("phone-native-failure-android15")
         fail("No se cumplió: $description")
     }
 
@@ -137,6 +138,79 @@ class ReaderDeviceTest {
         val filename=if(prefix!=null) name.replaceFirst("phone-","$prefix-") else name
         File(directory,"$filename.png").outputStream().use {bitmap.compress(Bitmap.CompressFormat.PNG,100,it)}
         bitmap.recycle()
+    }
+
+    @Test fun libraryOrganizationPersistsWithoutChangingReadingProgress() {
+        val context=instrumentation.targetContext
+        val sample=app.lectio.reader.data.DemoBook.create(context.cacheDir)
+        val fixtures=listOf(
+            sample.copy(id="library-test-a",title="Muestra: Árboles al viento",author="Lectio · muestra de biblioteca",lastRead=10,added=1,position=.3f),
+            sample.copy(id="library-test-b",title="Muestra: Mirar despacio",author="Lectio · muestra de biblioteca",lastRead=0,added=3),
+            sample.copy(id="library-test-c",title="Muestra: Un camino largo entre las páginas de un libro",author="Lectio · muestra de biblioteca",lastRead=0,added=2)
+        )
+        app.lectio.reader.data.LibraryDb(context).use {db -> fixtures.forEach {db.save(it)}}
+        activity.scenario.onActivity {host -> androidx.lifecycle.ViewModelProvider(host)[ReaderViewModel::class.java].preferences {
+            it.copy(librarySort="RECENT",favoriteBooks=it.favoriteBooks-fixtures.map {b -> b.id}.toSet())
+        }}
+        await("Orden inicial guardado") {app.lectio.reader.data.SettingsStore(context).load().librarySort=="RECENT"}
+        activity.scenario.recreate()
+        library()
+        tap(description="Buscar libros")
+        fun search(value: String) {
+            await("Campo de búsqueda") {
+                val field=findNode(root) {it.isEditable}
+                field?.performAction(AccessibilityNodeInfo.ACTION_SET_TEXT,android.os.Bundle().apply {putCharSequence(AccessibilityNodeInfo.ACTION_ARGUMENT_SET_TEXT_CHARSEQUENCE,value)})==true
+            }
+            instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_ENTER)
+            automation.waitForIdle(150,3000)
+        }
+        search("MUESTRA: arboles")
+        scrollTo(fixtures[0].title)
+        await("Título sin tilde encontrado") {textNode(fixtures[0].title)!=null&&textNode(fixtures[1].title)==null}
+        capture("phone-library-search-android15")
+        search("Muestra:")
+        scrollTo("Orden: Recientes");tap(text="Orden: Recientes")
+        await("Menú de orden desplegado") {textNode("Últimos añadidos")!=null}
+        capture("phone-library-sort-menu-android15")
+        tap(text="Título")
+        await("Orden persistido") {app.lectio.reader.data.SettingsStore(context).load().librarySort=="TITLE"}
+        fixtures.take(2).forEach {book ->
+            scrollTo(book.title)
+            tap(description="Añadir a favoritos: ${book.title}")
+        }
+        scrollTo("Favoritos");tap(text="Favoritos")
+        await("Dos favoritos guardados") {app.lectio.reader.data.SettingsStore(context).load().favoriteBooks.containsAll(fixtures.take(2).map {it.id})}
+        activity.scenario.recreate()
+        library()
+        instrumentation.sendKeyDownUpSync(android.view.KeyEvent.KEYCODE_ENTER)
+        await("Búsqueda y filtro restaurados") {
+            var node=textNode("Favoritos");var selected=false
+            while(node!=null) {if(node.isSelected||node.isChecked) selected=true;node=node.parent}
+            selected&&textNode("Orden: Título")!=null
+        }
+        fixtures.take(2).forEach {book ->
+            scrollTo(book.title)
+            tap(description="Quitar de favoritos: ${book.title}")
+        }
+        // Close search to show the favorites-specific recovery, rather than search's empty state.
+        tap(description="Cerrar búsqueda")
+        scrollTo("Aún no tienes favoritos")
+        capture("phone-library-favorites-empty-android15")
+        scrollTo("Todos");tap(text="Todos")
+        fixtures.take(2).forEach {book ->
+            scrollTo(book.title)
+            tap(description="Añadir a favoritos: ${book.title}")
+        }
+        scrollTo("Favoritos");tap(text="Favoritos")
+        scrollTo("Orden: Título")
+        capture("phone-library-favorites-android15")
+        app.lectio.reader.data.LibraryDb(context).use {db ->
+            val stored=db.books().first {it.id==fixtures[0].id}
+            assertEquals(.3f,stored.position,.001f)
+            assertEquals(10L,stored.lastRead)
+        }
+        assertEquals("TITLE",app.lectio.reader.data.SettingsStore(context).load().librarySort)
+        assertEquals(2,app.lectio.reader.data.SettingsStore(context).load().favoriteBooks.intersect(fixtures.map {it.id}.toSet()).size)
     }
 
     /** Find geometry only; the selection itself must come from real Android touch events. */

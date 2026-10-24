@@ -47,7 +47,7 @@ import app.lectio.reader.ReaderViewModel
                     if(state.loading) Box(Modifier.fillMaxSize(),contentAlignment=androidx.compose.ui.Alignment.Center) { CircularProgressIndicator() }
                     else if(state.current!=null) ReaderScreen(vm,state,snackbars)
                     else when(destination) {
-                        0 -> LibraryScreen(state,vm::open,importBook,vm::remove,snackbars)
+                        0 -> LibraryScreen(state,vm::open,importBook,vm::remove,snackbars,vm::favorite) {sort -> vm.preferences {it.copy(librarySort=sort.name)}}
                         1 -> VocabularyScreen(state.words,pronounce,vm::toggleLearned,vm::deleteWord,vm::learn)
                         2 -> ActivityScreen(state)
                         3 -> SettingsScreen(state.preferences,state.translationReady,state.translationDownloading,vm::preferences,vm::downloadTranslation)

@@ -70,7 +70,11 @@ class ReaderViewModel(application: Application) : AndroidViewModel(application) 
     fun readerProgress(bookId: String, chapter: Int, position: Float, textOffset: Int = -1) { val current=mutable.value.current ?: return; if(current.id==bookId&&current.chapter==chapter) progress(chapter,position,textOffset) }
     fun chapter(index: Int, position: Float = 0f, fragment: String? = null, textOffset: Int = -1) { if(index !in (mutable.value.current?.chapters?.indices ?: return)) return;dismissSelection(); progress(index,position,textOffset);mutable.update { it.copy(navigationId=it.navigationId+1,fragment=fragment) } }
     fun navigationConsumed() {mutable.update {it.copy(fragment=null)}}
-    fun remove(book: Book) { viewModelScope.launch(Dispatchers.IO) { repo.remove(book);refresh() }; message("Libro eliminado del dispositivo") }
+    fun remove(book: Book) {
+        preferences {it.copy(favoriteBooks=it.favoriteBooks-book.id)}
+        viewModelScope.launch(Dispatchers.IO) { repo.remove(book);refresh() }; message("Libro eliminado del dispositivo")
+    }
+    fun favorite(book: Book) {preferences {it.copy(favoriteBooks=if(book.id in it.favoriteBooks) it.favoriteBooks-book.id else it.favoriteBooks+book.id)}}
     fun preferences(change: (Preferences) -> Preferences) {
         mutable.update {it.copy(preferences=change(it.preferences))}
         preferenceWrites.trySend(mutable.value.preferences)
